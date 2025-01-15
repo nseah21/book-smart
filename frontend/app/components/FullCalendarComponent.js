@@ -30,6 +30,8 @@ const FullCalendarComponent = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedInfo, setSelectedInfo] = useState(null);
   const [currentEvents, setCurrentEvents] = useState([]);
+  const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false);
+  const [eventDetails, setEventDetails] = useState(null);
 
   // Form states
   const [eventType, setEventType] = useState("Meeting");
@@ -48,6 +50,21 @@ const FullCalendarComponent = () => {
     fetchEvents();
   }, []);
 
+  const handleEventClick = (clickInfo) => {
+    const { title, extendedProps, start, end } = clickInfo.event;
+
+    setEventDetails({
+      title,
+      description: extendedProps.description || "No description",
+      start: start.toISOString(),
+      end: end ? end.toISOString() : "N/A",
+      participants: extendedProps.participants || [],
+      categories: extendedProps.categories || [],
+    });
+
+    setIsEventDetailsOpen(true);
+  };
+
   const lookupParticipantIds = async (emails) => {
     try {
       // Fetch all participants from the backend
@@ -55,35 +72,41 @@ const FullCalendarComponent = () => {
       if (!response.ok) {
         throw new Error("Failed to fetch participants");
       }
-  
+
       const participants = await response.json();
-  
+
       // Split the emails string into an array and trim whitespace
-      const emailList = emails.split(",").map((email) => email.trim().toLowerCase());
-  
+      const emailList = emails
+        .split(",")
+        .map((email) => email.trim().toLowerCase());
+
       // Find matching participants by email
       const participantIds = emailList
         .map((email) => {
-          const participant = participants.find((p) => p.email.toLowerCase() === email);
+          const participant = participants.find(
+            (p) => p.email.toLowerCase() === email
+          );
           return participant ? participant.id : null; // Return null if not found
         })
         .filter((id) => id !== null); // Exclude null values
-  
+
       // Check for any missing participants
       const missingEmails = emailList.filter(
         (email) => !participants.some((p) => p.email.toLowerCase() === email)
       );
-  
+
       if (missingEmails.length > 0) {
-        console.warn(`Warning: Some emails were not found: ${missingEmails.join(", ")}`);
+        console.warn(
+          `Warning: Some emails were not found: ${missingEmails.join(", ")}`
+        );
       }
-  
+
       return participantIds;
     } catch (error) {
       console.error("Error looking up participant IDs:", error);
       throw error; // Rethrow to handle in the calling function
     }
-  }
+  };
 
   const fetchEvents = async () => {
     try {
@@ -141,11 +164,11 @@ const FullCalendarComponent = () => {
       alert("Title is required");
       return;
     }
-  
+
     try {
       // Convert participant emails to IDs
       const participantIds = await lookupParticipantIds(participants);
-  
+
       const eventData = {
         title,
         description,
@@ -155,7 +178,7 @@ const FullCalendarComponent = () => {
         recurrence: recurrence !== "none" ? recurrence : null,
         reminder: reminder ? parseInt(reminder, 10) : null,
       };
-  
+
       if (eventType === "Meeting") {
         eventData.date = date;
         eventData.start_time = startTime;
@@ -163,14 +186,14 @@ const FullCalendarComponent = () => {
       } else {
         eventData.due_date = dueDate;
       }
-  
+
       const endpoint = eventType === "Meeting" ? "meetings" : "tasks";
       const response = await fetch(`http://localhost:8000/${endpoint}/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(eventData),
       });
-  
+
       if (response.ok) {
         alert(`${eventType} created successfully!`);
         resetForm();
@@ -185,7 +208,6 @@ const FullCalendarComponent = () => {
       alert("Failed to create event. Please try again.");
     }
   };
-  
 
   const resetForm = () => {
     setTitle("");
@@ -218,9 +240,73 @@ const FullCalendarComponent = () => {
           dayMaxEvents={true}
           weekends={weekendsVisible}
           events={currentEvents}
+          eventClick={handleEventClick}
           select={handleDateSelect}
         />
       </div>
+
+      {/* Event Details Modal */}
+      <Dialog open={isEventDetailsOpen} onOpenChange={setIsEventDetailsOpen}>
+        <DialogContent className="max-w-lg p-6 bg-white rounded-lg shadow-lg">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-semibold text-gray-800 mb-2">
+              {eventDetails?.title}
+            </DialogTitle>
+            <DialogDescription>
+              <div className="mt-4 space-y-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">
+                    Description
+                  </p>
+                  <p className="text-base text-gray-700">
+                    {eventDetails?.description}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-base text-gray-700">
+                    {eventDetails?.start}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">End</p>
+                  <p className="text-base text-gray-700">{eventDetails?.end}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">
+                    Participants
+                  </p>
+                  <p className="text-base text-gray-700">
+                    {eventDetails?.participants.length > 0
+                      ? eventDetails.participants
+                          .map((p) => `${p.name} (${p.email})`)
+                          .join(", ")
+                      : "None"}
+                  </p>
+                </div>
+                {/* <div>
+                  <p className="text-sm font-medium text-gray-500">
+                    Categories
+                  </p>
+                  <p className="text-base text-gray-700">
+                    {eventDetails?.categories.length > 0
+                      ? eventDetails.categories.map((c) => c.name).join(", ")
+                      : "None"}
+                  </p>
+                </div> */}
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-6">
+            <Button
+              variant="secondary"
+              onClick={() => setIsEventDetailsOpen(false)}
+              className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-4 py-2 rounded-md"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Event Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -353,27 +439,34 @@ const FullCalendarComponent = () => {
           <div className="mb-4">
             <Label htmlFor="color">Color (optional)</Label>
             <div className="flex gap-4">
-              {["#FF6F61", "#FFA500", "#FFD700", "#9ACD32", "#FF69B4", "#40E0D0", "#ADFF2F", "#1E90FF"].map(
-                (clr) => (
-                  <label key={clr} className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="color"
-                      value={clr}
-                      checked={color === clr}
-                      onChange={(e) => setColor(e.target.value)}
-                      className="hidden"
-                    />
-                    <div
-                      className={`w-8 h-8 rounded-full border-2 cursor-pointer`}
-                      style={{
-                        backgroundColor: clr,
-                        borderColor: color === clr ? "black" : "transparent",
-                      }}
-                    ></div>
-                  </label>
-                )
-              )}
+              {[
+                "#FF6F61",
+                "#FFA500",
+                "#FFD700",
+                "#9ACD32",
+                "#FF69B4",
+                "#40E0D0",
+                "#ADFF2F",
+                "#1E90FF",
+              ].map((clr) => (
+                <label key={clr} className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="color"
+                    value={clr}
+                    checked={color === clr}
+                    onChange={(e) => setColor(e.target.value)}
+                    className="hidden"
+                  />
+                  <div
+                    className={`w-8 h-8 rounded-full border-2 cursor-pointer`}
+                    style={{
+                      backgroundColor: clr,
+                      borderColor: color === clr ? "black" : "transparent",
+                    }}
+                  ></div>
+                </label>
+              ))}
             </div>
           </div>
 
