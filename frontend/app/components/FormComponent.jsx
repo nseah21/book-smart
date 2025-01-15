@@ -4,6 +4,7 @@ import SummaryComponent from "./SummaryComponent";
 
 const FormComponent = () => {
   const descriptionRef = useRef("");
+  const instructionsRef = useRef(""); // New ref for user instructions
   const [summary, setSummary] = useState(null);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -78,10 +79,7 @@ const FormComponent = () => {
 
     const formData = new FormData();
     formData.append("user_id", localStorage.getItem("email")); // Replace with actual user ID
-    formData.append(
-      "user_instructions",
-      "Please give the summary in point form. And also include actionable insights where relevant."
-    ); // Optional instructions
+    formData.append("user_instructions", instructionsRef.current.value.trim()); // Add instructions to form data
 
     if (uploadedFile) {
       formData.append("file", uploadedFile);
@@ -100,8 +98,6 @@ const FormComponent = () => {
       }
 
       const result = await response.json();
-      //   alert(JSON.stringify(result));
-
       setSummary(result.summary);
     } catch (error) {
       console.error(error);
@@ -115,6 +111,7 @@ const FormComponent = () => {
     setSummary(null);
     setUploadedFile(null);
     descriptionRef.current.value = "";
+    instructionsRef.current.value = ""; // Reset instructions
   };
 
   return (
@@ -163,6 +160,7 @@ const FormComponent = () => {
                   ref={descriptionRef}
                 />
               </div>
+
               <label
                 className="block text-gray-700 text-md font-bold mb-2"
                 htmlFor="Source"
@@ -183,6 +181,22 @@ const FormComponent = () => {
                   />
                 </label>
               </div>
+
+              {/* New Field for User Instructions */}
+              <div className="mb-4">
+                <label
+                  className="block text-gray-700 text-md font-bold mb-2"
+                  htmlFor="Instructions"
+                >
+                  Special Instructions (Optional)
+                </label>
+                <textarea
+                  className="shadow appearance-none border rounded w-full min-h-24 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  placeholder="e.g., Use bullet points or simplify complex jargon"
+                  ref={instructionsRef}
+                />
+              </div>
+
               <div className="flex justify-center">
                 <button
                   className="bg-blue-700 w-48 hover:bg-blue-600 text-white py-2 px-4 rounded focus:outline-none focus:shadow-outline"
