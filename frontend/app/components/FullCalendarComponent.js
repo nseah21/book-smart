@@ -1,6 +1,6 @@
 "use client"; // Ensures this component only renders on the client side
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -29,6 +29,7 @@ const FullCalendarComponent = () => {
   const [weekendsVisible, setWeekendsVisible] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedInfo, setSelectedInfo] = useState(null);
+  const [currentEvents, setCurrentEvents] = useState([]);
 
   // Form states
   const [eventType, setEventType] = useState("Meeting");
@@ -44,6 +45,56 @@ const FullCalendarComponent = () => {
   const [recurrence, setRecurrence] = useState("none"); // Recurrence state
   const [reminder, setReminder] = useState(""); // Reminder state (minutes before)
 
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const fetchEvents = async () => {
+    try {
+      const [meetingsResponse, tasksResponse] = await Promise.all([
+        fetch("http://localhost:8000/meetings/"),
+        fetch("http://localhost:8000/tasks/"),
+      ]);
+
+      const meetings = await meetingsResponse.json();
+      const tasks = await tasksResponse.json();
+
+      // Transform meetings and tasks to FullCalendar's event format
+      const events = [
+        ...meetings.map((m) => ({
+          id: `meeting-${m.id}`,
+          title: m.title,
+          start: `${m.date}T${m.start_time}`,
+          end: `${m.date}T${m.end_time}`,
+          backgroundColor: m.color || "#3788d8",
+          extendedProps: {
+            description: m.description,
+            type: "Meeting",
+            participants: m.participants,
+            categories: m.categories,
+          },
+        })),
+        ...tasks.map((t) => ({
+          id: `task-${t.id}`,
+          title: t.title,
+          start: t.due_date,
+          backgroundColor: t.color || "#ff9f89",
+          extendedProps: {
+            description: t.description,
+            type: "Task",
+            participants: t.participants,
+            categories: t.categories,
+          },
+        })),
+      ];
+
+      setCurrentEvents(events);
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      alert("Failed to fetch events. Please try again.");
+    }
+  };
+
   const handleWeekendsToggle = () => {
     setWeekendsVisible(!weekendsVisible);
   };
@@ -54,35 +105,62 @@ const FullCalendarComponent = () => {
     setIsDialogOpen(true);
   };
 
-  const handleEventCreate = () => {
+  const handleEventCreate = async () => {
     if (!title.trim()) {
       alert("Title is required");
       return;
     }
 
-    const calendarApi = selectedInfo.view.calendar;
-    calendarApi.unselect(); // Clear selection
-
-    const newEvent = {
-      id: createEventId(),
-      title,
-      start: eventType === "Meeting" ? `${date}T${startTime}` : dueDate,
-      end: eventType === "Meeting" ? `${date}T${endTime}` : null,
-      allDay: false,
-      extendedProps: {
+    try {
+      const eventData = {
+        title,
         description,
-        type: eventType,
         color,
-        label,
-        participants: participants.split(",").map((p) => p.trim()), // Split participants by commas
-        recurrence,
-        reminder,
-      },
-      backgroundColor: color,
-    };
+        participant_ids: participants
+          .split(",")
+          .map((id) => parseInt(id.trim(), 10)), // Convert participant IDs to integers
+        category_ids: label.split(",").map((id) => parseInt(id.trim(), 10)), // Convert category IDs to integers
+      };
 
-    calendarApi.addEvent(newEvent);
-    resetForm();
+      if (eventType === "Meeting") {
+        // Additional data for meetings
+        eventData.date = date;
+        eventData.start_time = startTime;
+        eventData.end_time = endTime;
+      } else {
+        // Additional data for tasks
+        eventData.due_date = dueDate;
+      }
+
+      if (recurrence !== "none") {
+        eventData.recurrence = recurrence;
+      }
+      
+      if (reminder) {
+        eventData.reminder = parseInt(reminder, 10); 
+      }
+      
+
+      const endpoint = eventType === "Meeting" ? "meetings" : "tasks";
+      const response = await fetch(`http://localhost:8000/${endpoint}/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(eventData),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(`${eventType} created successfully!`);
+        resetForm();
+        // Optionally, reload events from backend
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.detail}`);
+      }
+    } catch (error) {
+      console.error("Error creating event:", error);
+      alert("Failed to create event. Please try again.");
+    }
   };
 
   const resetForm = () => {
@@ -116,7 +194,7 @@ const FullCalendarComponent = () => {
           selectMirror={true}
           dayMaxEvents={true}
           weekends={weekendsVisible}
-          initialEvents={INITIAL_EVENTS}
+          events={currentEvents}
           select={handleDateSelect}
         />
       </div>
