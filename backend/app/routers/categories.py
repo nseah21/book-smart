@@ -6,7 +6,6 @@ from typing import List
 
 router = APIRouter()
 
-
 # Dependency to get DB session
 def get_db():
     db = SessionLocal()
@@ -14,7 +13,6 @@ def get_db():
         yield db
     finally:
         db.close()
-
 
 @router.get("/", response_model=List[dict])
 def get_categories(db: Session = Depends(get_db)):
@@ -35,9 +33,7 @@ def create_category(name: str, color: str, db: Session = Depends(get_db)):
     # Check if category name is unique
     existing_category = db.query(Category).filter(Category.name == name).first()
     if existing_category:
-        raise HTTPException(
-            status_code=400, detail="Category with this name already exists"
-        )
+        raise HTTPException(status_code=400, detail="Category with this name already exists")
 
     category = Category(name=name, color=color)
     db.add(category)
@@ -47,24 +43,16 @@ def create_category(name: str, color: str, db: Session = Depends(get_db)):
 
 
 @router.put("/{category_id}", response_model=dict)
-def update_category(
-    category_id: int, name: str = None, color: str = None, db: Session = Depends(get_db)
-):
+def update_category(category_id: int, name: str = None, color: str = None, db: Session = Depends(get_db)):
     category = db.query(Category).filter(Category.id == category_id).first()
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
 
     if name:
         # Ensure the new name is unique
-        existing_category = (
-            db.query(Category)
-            .filter(Category.name == name, Category.id != category_id)
-            .first()
-        )
+        existing_category = db.query(Category).filter(Category.name == name, Category.id != category_id).first()
         if existing_category:
-            raise HTTPException(
-                status_code=400, detail="Category with this name already exists"
-            )
+            raise HTTPException(status_code=400, detail="Category with this name already exists")
         category.name = name
     if color:
         category.color = color

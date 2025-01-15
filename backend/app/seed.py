@@ -1,5 +1,5 @@
 from app.database import SessionLocal
-from app.models import Base, Task, Meeting, Participant, Category, RecurrenceRule, RecurrenceFrequency
+from app.models import Base, Task, Meeting, Participant, Category, RecurrenceRule, RecurrenceFrequency, Reminder
 from app.database import engine
 from datetime import datetime, date, time
 
@@ -10,6 +10,7 @@ def seed_data():
     session = SessionLocal()
 
     # Clear existing data (optional)
+    session.query(Reminder).delete()
     session.query(RecurrenceRule).delete()
     session.query(Task).delete()
     session.query(Meeting).delete()
@@ -37,16 +38,26 @@ def seed_data():
         description="Write and submit the project proposal document.",
         due_date=date(2025, 1, 30),
         color="#FF5733",
-        categories=[work, urgent]
+        categories=[work, urgent],
+        participants=[alice, bob]
     )
     task2 = Task(
         title="Buy Groceries",
         description="Purchase groceries for the week.",
         due_date=date(2025, 1, 27),
         color="#33FF57",
-        categories=[personal]
+        categories=[personal],
+        participants=[charlie]
     )
-    session.add_all([task1, task2])
+    task3 = Task(
+        title="Plan Weekend Trip",
+        description="Organize the itinerary for the weekend trip.",
+        due_date=date(2025, 2, 1),
+        color="#FF33A1",
+        categories=[personal],
+        participants=[]
+    )
+    session.add_all([task1, task2, task3])
     session.commit()
 
     # Add meetings
@@ -87,6 +98,7 @@ def seed_data():
     session.add(recurring_meeting)
     session.commit()
 
+    # Add recurrence rule
     recurrence_rule = RecurrenceRule(
         meeting_id=recurring_meeting.id,
         frequency=RecurrenceFrequency.WEEKLY,
@@ -94,6 +106,34 @@ def seed_data():
         end_date=date(2025, 3, 31)  # Recurs weekly until this date
     )
     session.add(recurrence_rule)
+    session.commit()
+
+    # Add reminders
+    reminder1 = Reminder(
+        message="Reminder: Complete Project Proposal",
+        reminder_time=datetime(2025, 1, 29, 9, 0, 0),
+        task=task1,
+        participants=[alice, bob]
+    )
+    reminder2 = Reminder(
+        message="Reminder: Buy Groceries",
+        reminder_time=datetime(2025, 1, 26, 18, 0, 0),
+        task=task2,
+        participants=[charlie]
+    )
+    reminder3 = Reminder(
+        message="Reminder: Team Sync",
+        reminder_time=datetime(2025, 1, 25, 9, 30, 0),
+        meeting=meeting1,
+        participants=[alice, bob]
+    )
+    reminder4 = Reminder(
+        message="Reminder: Client Presentation",
+        reminder_time=datetime(2025, 1, 28, 13, 30, 0),
+        meeting=meeting2,
+        participants=[alice, charlie]
+    )
+    session.add_all([reminder1, reminder2, reminder3, reminder4])
     session.commit()
 
     print("Database seeded successfully!")

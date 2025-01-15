@@ -1,12 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
-from app.models import Task, Category
+from app.models import Task, Category, Participant
 from typing import List
 from datetime import datetime
 
 router = APIRouter()
-
 
 # Dependency to get DB session
 def get_db():
@@ -16,7 +15,6 @@ def get_db():
     finally:
         db.close()
 
-
 @router.post("/", response_model=dict)
 def create_task(
     title: str,
@@ -24,22 +22,30 @@ def create_task(
     due_date: str,
     color: str = None,
     category_ids: List[int] = None,
+    participant_ids: List[int] = None,
     db: Session = Depends(get_db),
 ):
     due_date_obj = datetime.strptime(due_date, "%Y-%m-%d").date()
-    task = Task(
-        title=title, description=description, due_date=due_date_obj, color=color
-    )
+    task = Task(title=title, description=description, due_date=due_date_obj, color=color)
+
+    # Associate categories if provided
     if category_ids:
         categories = db.query(Category).filter(Category.id.in_(category_ids)).all()
         if len(categories) != len(category_ids):
             raise HTTPException(status_code=404, detail="One or more categories not found")
-        task.categories = categories
+        task.categories.extend(categories)
+
+    # Associate participants if provided
+    if participant_ids:
+        participants = db.query(Participant).filter(Participant.id.in_(participant_ids)).all()
+        if len(participants) != len(participant_ids):
+            raise HTTPException(status_code=404, detail="One or more participants not found")
+        task.participants.extend(participants)
+
     db.add(task)
     db.commit()
     db.refresh(task)
     return {"message": "Task created successfully", "task_id": task.id}
-
 
 @router.get("/", response_model=List[dict])
 def get_tasks(db: Session = Depends(get_db)):
@@ -52,10 +58,10 @@ def get_tasks(db: Session = Depends(get_db)):
             "due_date": str(task.due_date),
             "color": task.color,
             "categories": [{"id": cat.id, "name": cat.name} for cat in task.categories],
+            "participants": [{"id": p.id, "name": p.name, "email": p.email} for p in task.participants],
         }
         for task in tasks
     ]
-
 
 @router.get("/{task_id}", response_model=dict)
 def get_task(task_id: int, db: Session = Depends(get_db)):
@@ -69,8 +75,8 @@ def get_task(task_id: int, db: Session = Depends(get_db)):
         "due_date": str(task.due_date),
         "color": task.color,
         "categories": [{"id": cat.id, "name": cat.name} for cat in task.categories],
+        "participants": [{"id": p.id, "name": p.name, "email": p.email} for p in task.participants],
     }
-
 
 @router.put("/{task_id}", response_model=dict)
 def update_task(
@@ -80,6 +86,7 @@ def update_task(
     due_date: str = None,
     color: str = None,
     category_ids: List[int] = None,
+    participant_ids: List[int] = None,
     db: Session = Depends(get_db),
 ):
     task = db.query(Task).filter(Task.id == task_id).first()
@@ -101,9 +108,15 @@ def update_task(
             raise HTTPException(status_code=404, detail="One or more categories not found")
         task.categories = categories
 
+    # Update participants if provided
+    if participant_ids is not None:
+        participants = db.query(Participant).filter(Participant.id.in_(participant_ids)).all()
+        if len(participants) != len(participant_ids):
+            raise HTTPException(status_code=404, detail="One or more participants not found")
+        task.participants = participants
+
     db.commit()
     return {"message": "Task updated successfully"}
-
 
 @router.delete("/{task_id}", response_model=dict)
 def delete_task(task_id: int, db: Session = Depends(get_db)):
