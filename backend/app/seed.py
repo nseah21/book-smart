@@ -39,7 +39,7 @@ def seed_data():
         due_date=date(2025, 1, 30),
         color="#FF5733",
         categories=[work, urgent],
-        participants=[alice, bob, nicholas]
+        participants=[alice, bob],
     )
     task2 = Task(
         title="Buy Groceries",
