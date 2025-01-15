@@ -1,7 +1,6 @@
 "use client"; // Ensures this component only renders on the client side
 
 import React, { useState } from "react";
-import { formatDate } from "@fullcalendar/core";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -28,7 +27,6 @@ import { Textarea } from "@/components/ui/textarea";
 
 const FullCalendarComponent = () => {
   const [weekendsVisible, setWeekendsVisible] = useState(true);
-  const [currentEvents, setCurrentEvents] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedInfo, setSelectedInfo] = useState(null);
 
@@ -43,6 +41,8 @@ const FullCalendarComponent = () => {
   const [color, setColor] = useState("#0000ff"); // Default color
   const [label, setLabel] = useState("");
   const [participants, setParticipants] = useState("");
+  const [recurrence, setRecurrence] = useState("none"); // Recurrence state
+  const [reminder, setReminder] = useState(""); // Reminder state (minutes before)
 
   const handleWeekendsToggle = () => {
     setWeekendsVisible(!weekendsVisible);
@@ -75,6 +75,8 @@ const FullCalendarComponent = () => {
         color,
         label,
         participants: participants.split(",").map((p) => p.trim()), // Split participants by commas
+        recurrence,
+        reminder,
       },
       backgroundColor: color,
     };
@@ -93,6 +95,8 @@ const FullCalendarComponent = () => {
     setColor("#0000ff");
     setLabel("");
     setParticipants("");
+    setRecurrence("none");
+    setReminder("");
     setIsDialogOpen(false);
   };
 
@@ -128,6 +132,7 @@ const FullCalendarComponent = () => {
               Please fill in the event details.
             </DialogDescription>
           </DialogHeader>
+
           <Select
             onValueChange={(value) => setEventType(value)}
             value={eventType}
@@ -160,7 +165,7 @@ const FullCalendarComponent = () => {
             />
           </div>
 
-          {eventType === "meeting" ? (
+          {eventType === "Meeting" ? (
             <>
               <div className="mb-4">
                 <Label htmlFor="date">Date</Label>
@@ -205,6 +210,34 @@ const FullCalendarComponent = () => {
           )}
 
           <div className="mb-4">
+            <Label htmlFor="recurrence">Recurrence</Label>
+            <Select
+              onValueChange={(value) => setRecurrence(value)}
+              value={recurrence}
+              className="w-full"
+            >
+              <SelectTrigger>Recurrence: {recurrence}</SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                <SelectItem value="daily">Daily</SelectItem>
+                <SelectItem value="weekly">Weekly</SelectItem>
+                <SelectItem value="monthly">Monthly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="mb-4">
+            <Label htmlFor="reminder">Reminder (minutes before)</Label>
+            <Input
+              type="number"
+              id="reminder"
+              placeholder="Enter minutes"
+              value={reminder}
+              onChange={(e) => setReminder(e.target.value)}
+            />
+          </div>
+
+          <div className="mb-4">
             <Label htmlFor="color">Color (optional)</Label>
             <div className="flex gap-4">
               {[
@@ -236,26 +269,6 @@ const FullCalendarComponent = () => {
                 </label>
               ))}
             </div>
-          </div>
-
-          <div className="mb-4">
-            <Label htmlFor="label">Label (optional, comma-separated)</Label>
-            <Input
-              id="label"
-              placeholder="Enter label"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-            />
-          </div>
-
-          <div className="mb-4">
-            <Label htmlFor="participants">Participants (comma-separated)</Label>
-            <Input
-              id="participants"
-              placeholder="Enter participants' emails"
-              value={participants}
-              onChange={(e) => setParticipants(e.target.value)}
-            />
           </div>
 
           <DialogFooter>
