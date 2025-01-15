@@ -1,58 +1,105 @@
 "use client"; // Ensures this component only renders on the client side
 
-import React, { useState } from 'react';
-import { formatDate } from '@fullcalendar/core';
-import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import timeGridPlugin from '@fullcalendar/timegrid';
-import interactionPlugin from '@fullcalendar/interaction';
-import { INITIAL_EVENTS, createEventId } from './event-utils';
+import React, { useState } from "react";
+import { formatDate } from "@fullcalendar/core";
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import interactionPlugin from "@fullcalendar/interaction";
+import { INITIAL_EVENTS, createEventId } from "./event-utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectTrigger, SelectContent, SelectItem } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 const FullCalendarComponent = () => {
   const [weekendsVisible, setWeekendsVisible] = useState(true);
   const [currentEvents, setCurrentEvents] = useState([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedInfo, setSelectedInfo] = useState(null);
+
+  // Form states
+  const [eventType, setEventType] = useState("meeting");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [date, setDate] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [color, setColor] = useState("#0000ff"); // Default color
+  const [label, setLabel] = useState("");
+  const [participants, setParticipants] = useState("");
 
   const handleWeekendsToggle = () => {
     setWeekendsVisible(!weekendsVisible);
   };
 
   const handleDateSelect = (selectInfo) => {
-    let title = prompt('Please enter a new title for your event');
-    let calendarApi = selectInfo.view.calendar;
-
-    calendarApi.unselect(); // Clear selection after prompt
-
-    if (title) {
-      calendarApi.addEvent({
-        id: createEventId(),
-        title,
-        start: selectInfo.startStr,
-        end: selectInfo.endStr,
-        allDay: selectInfo.allDay,
-      });
-    }
+    setSelectedInfo(selectInfo);
+    setDate(selectInfo.startStr.split("T")[0]); // Autofill date for "Meeting"
+    setIsDialogOpen(true);
   };
 
-  const handleEventClick = (clickInfo) => {
-    if (confirm(`Are you sure you want to delete the event '${clickInfo.event.title}'`)) {
-      clickInfo.event.remove();
+  const handleEventCreate = () => {
+    if (!title.trim()) {
+      alert("Title is required");
+      return;
     }
+
+    const calendarApi = selectedInfo.view.calendar;
+    calendarApi.unselect(); // Clear selection
+
+    const newEvent = {
+      id: createEventId(),
+      title,
+      start: eventType === "meeting" ? `${date}T${startTime}` : dueDate,
+      end: eventType === "meeting" ? `${date}T${endTime}` : null,
+      allDay: false,
+      extendedProps: {
+        description,
+        type: eventType,
+        color,
+        label,
+        participants: participants.split(",").map((p) => p.trim()), // Split participants by commas
+      },
+      backgroundColor: color,
+    };
+
+    calendarApi.addEvent(newEvent);
+    resetForm();
   };
 
-  const handleEvents = (events) => {
-    setCurrentEvents(events);
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
+    setDate("");
+    setStartTime("");
+    setEndTime("");
+    setDueDate("");
+    setColor("#0000ff");
+    setLabel("");
+    setParticipants("");
+    setIsDialogOpen(false);
   };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {renderSidebar(weekendsVisible, handleWeekendsToggle, currentEvents)}
       <div className="flex-grow p-6">
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           headerToolbar={{
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay',
+            left: "prev,next today",
+            center: "title",
+            right: "dayGridMonth,timeGridWeek,timeGridDay",
           }}
           initialView="dayGridMonth"
           editable={true}
@@ -62,64 +109,87 @@ const FullCalendarComponent = () => {
           weekends={weekendsVisible}
           initialEvents={INITIAL_EVENTS}
           select={handleDateSelect}
-          eventContent={renderEventContent} // Custom render function for event content
-          eventClick={handleEventClick}
-          eventsSet={handleEvents} // Called after events are initialized/added/changed/removed
         />
       </div>
-    </div>
-  );
-};
 
-const renderSidebar = (weekendsVisible, handleWeekendsToggle, currentEvents) => {
-  return (
-    <div className="w-80 bg-white shadow-md border-r border-gray-200">
-      <div className="p-6">
-        <h2 className="text-lg font-semibold">Instructions</h2>
-        <ul className="list-disc pl-5">
-          <li className="my-4">Select dates and you will be prompted to create a new event</li>
-          <li className="my-4">Drag, drop, and resize events</li>
-          <li className="my-4">Click an event to delete it</li>
-        </ul>
-      </div>
-      <div className="p-6">
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            className="w-4 h-4"
-            checked={weekendsVisible}
-            onChange={handleWeekendsToggle}
-          />
-          <span className="text-sm font-medium">Toggle weekends</span>
-        </label>
-      </div>
-      <div className="p-6">
-        <h2 className="text-lg font-semibold">All Events ({currentEvents.length})</h2>
-        <ul className="list-disc pl-5">
-          {currentEvents.map(renderSidebarEvent)}
-        </ul>
-      </div>
-    </div>
-  );
-};
+      {/* Add Event Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New {eventType === "meeting" ? "Meeting" : "Task"}</DialogTitle>
+            <DialogDescription>Please fill in the event details.</DialogDescription>
+          </DialogHeader>
+          <Select onValueChange={(value) => setEventType(value)} value={eventType} className="mb-4">
+            <SelectTrigger className="w-full">Type: {eventType}</SelectTrigger>
+            <SelectContent>
+              <SelectItem value="meeting">Meeting</SelectItem>
+              <SelectItem value="task">Task</SelectItem>
+            </SelectContent>
+          </Select>
 
-const renderEventContent = (eventInfo) => {
-  return (
-    <div>
-      <b className="mr-1">{eventInfo.timeText}</b>
-      <span className="italic">{eventInfo.event.title}</span>
-    </div>
-  );
-};
+          <div className="mb-4">
+            <Label htmlFor="title">Title</Label>
+            <Input id="title" placeholder="Enter title" value={title} onChange={(e) => setTitle(e.target.value)} />
+          </div>
 
-const renderSidebarEvent = (event) => {
-  return (
-    <li key={event.id} className="my-4">
-      <b className="text-gray-700">
-        {formatDate(event.start, { year: 'numeric', month: 'short', day: 'numeric' })}
-      </b>
-      <span className="italic">{event.title}</span>
-    </li>
+          <div className="mb-4">
+            <Label htmlFor="description">Description</Label>
+            <Textarea id="description" placeholder="Enter description" value={description} onChange={(e) => setDescription(e.target.value)} />
+          </div>
+
+          {eventType === "meeting" ? (
+            <>
+              <div className="mb-4">
+                <Label htmlFor="date">Date</Label>
+                <Input type="date" id="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="startTime">Start Time</Label>
+                  <Input type="time" id="startTime" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+                </div>
+                <div>
+                  <Label htmlFor="endTime">End Time</Label>
+                  <Input type="time" id="endTime" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="mb-4">
+              <Label htmlFor="dueDate">Due Date</Label>
+              <Input type="date" id="dueDate" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            </div>
+          )}
+
+          <div className="mb-4">
+            <Label htmlFor="color">Color (optional)</Label>
+            <Input type="color" id="color" value={color} onChange={(e) => setColor(e.target.value)} />
+          </div>
+
+          <div className="mb-4">
+            <Label htmlFor="label">Label (optional)</Label>
+            <Input id="label" placeholder="Enter label" value={label} onChange={(e) => setLabel(e.target.value)} />
+          </div>
+
+          <div className="mb-4">
+            <Label htmlFor="participants">Participants (comma-separated)</Label>
+            <Input
+              id="participants"
+              placeholder="Enter participants (e.g., Alice, Bob)"
+              value={participants}
+              onChange={(e) => setParticipants(e.target.value)}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setIsDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEventCreate}>Create Event</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 
