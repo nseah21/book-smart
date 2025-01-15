@@ -2,6 +2,9 @@ from app.database import SessionLocal
 from app.models import Base, Task, Meeting, Participant, Category, RecurrenceRule, RecurrenceFrequency, Reminder
 from app.database import engine
 from datetime import datetime, date, time
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 # Ensure tables are created
 Base.metadata.create_all(bind=engine)
@@ -19,9 +22,21 @@ def seed_data():
     session.commit()
 
     # Add participants
-    alice = Participant(name="Alice Johnson", email="alice@example.com")
-    bob = Participant(name="Bob Smith", email="bob@example.com")
-    charlie = Participant(name="Charlie Lee", email="charlie@example.com")
+    alice = Participant(
+        name="Alice Johnson", 
+        email="alice@example.com", 
+        hashed_password=pwd_context.hash("password123")
+    )
+    bob = Participant(
+        name="Bob Smith", 
+        email="bob@example.com", 
+        hashed_password=pwd_context.hash("securepassword")
+    )
+    charlie = Participant(
+        name="Charlie Lee", 
+        email="charlie@example.com", 
+        hashed_password=pwd_context.hash("charlie2025")
+    )
     session.add_all([alice, bob, charlie])
     session.commit()
 
