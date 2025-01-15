@@ -5,8 +5,10 @@ from app.models import Task, Participant, Category
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import date
+from app.routers.notifications import notify_task
 
 router = APIRouter()
+
 
 # Pydantic models for request and response
 class TaskCreate(BaseModel):
@@ -17,6 +19,7 @@ class TaskCreate(BaseModel):
     participant_ids: Optional[List[int]] = None
     category_ids: Optional[List[int]] = None
 
+
 class ParticipantResponse(BaseModel):
     id: int
     name: str
@@ -25,12 +28,14 @@ class ParticipantResponse(BaseModel):
     class Config:
         orm_mode = True
 
+
 class CategoryResponse(BaseModel):
     id: int
     name: str
 
     class Config:
         orm_mode = True
+
 
 class TaskResponse(BaseModel):
     id: int
@@ -44,6 +49,7 @@ class TaskResponse(BaseModel):
     class Config:
         orm_mode = True
 
+
 # Dependency to get DB session
 def get_db():
     db = SessionLocal()
@@ -52,19 +58,30 @@ def get_db():
     finally:
         db.close()
 
+
 @router.post("/", response_model=TaskResponse)
 def create_task(task_data: TaskCreate, db: Session = Depends(get_db)):
     participants = []
     if task_data.participant_ids:
-        participants = db.query(Participant).filter(Participant.id.in_(task_data.participant_ids)).all()
+        participants = (
+            db.query(Participant)
+            .filter(Participant.id.in_(task_data.participant_ids))
+            .all()
+        )
         if len(participants) != len(task_data.participant_ids):
-            raise HTTPException(status_code=404, detail="One or more participants not found")
+            raise HTTPException(
+                status_code=404, detail="One or more participants not found"
+            )
 
     categories = []
     if task_data.category_ids:
-        categories = db.query(Category).filter(Category.id.in_(task_data.category_ids)).all()
+        categories = (
+            db.query(Category).filter(Category.id.in_(task_data.category_ids)).all()
+        )
         if len(categories) != len(task_data.category_ids):
-            raise HTTPException(status_code=404, detail="One or more categories not found")
+            raise HTTPException(
+                status_code=404, detail="One or more categories not found"
+            )
 
     task = Task(
         title=task_data.title,
@@ -78,7 +95,15 @@ def create_task(task_data: TaskCreate, db: Session = Depends(get_db)):
     db.add(task)
     db.commit()
     db.refresh(task)
+
+    # Directly call the notify_task function
+    try:
+        notify_task(task_id=task.id, db=db)
+    except Exception as e:
+        print(f"[WARNING] Failed to send task notification: {e}")
+
     return task
+
 
 @router.get("/", response_model=List[TaskResponse])
 def get_tasks(db: Session = Depends(get_db)):

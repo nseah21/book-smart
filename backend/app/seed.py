@@ -39,7 +39,7 @@ def seed_data():
     )
     nicholas = Participant(
         name="Nicholas Seah", 
-        email="nic@example.com", 
+        email="nicholas7066@gmail.com", 
         hashed_password=pwd_context.hash("123456")
     )
     session.add_all([alice, bob, charlie, nicholas])

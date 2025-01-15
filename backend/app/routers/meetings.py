@@ -5,6 +5,7 @@ from app.models import Meeting, Participant, Category
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import date, time
+from app.routers.notifications import notify_meeting
 
 router = APIRouter()
 
@@ -82,6 +83,13 @@ def create_meeting(meeting_data: MeetingCreate, db: Session = Depends(get_db)):
     db.add(meeting)
     db.commit()
     db.refresh(meeting)
+
+    # Trigger email notification
+    try:
+        notify_meeting(meeting_id=meeting.id, db=db)
+    except Exception as e:
+        print(f"[WARNING] Failed to send meeting notification: {e}")
+
     return meeting
 
 @router.get("/", response_model=List[MeetingResponse])
