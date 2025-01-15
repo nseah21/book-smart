@@ -17,7 +17,12 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectTrigger, SelectContent, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -28,7 +33,7 @@ const FullCalendarComponent = () => {
   const [selectedInfo, setSelectedInfo] = useState(null);
 
   // Form states
-  const [eventType, setEventType] = useState("meeting");
+  const [eventType, setEventType] = useState("Meeting");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
@@ -61,8 +66,8 @@ const FullCalendarComponent = () => {
     const newEvent = {
       id: createEventId(),
       title,
-      start: eventType === "meeting" ? `${date}T${startTime}` : dueDate,
-      end: eventType === "meeting" ? `${date}T${endTime}` : null,
+      start: eventType === "Meeting" ? `${date}T${startTime}` : dueDate,
+      end: eventType === "Meeting" ? `${date}T${endTime}` : null,
       allDay: false,
       extendedProps: {
         description,
@@ -92,7 +97,7 @@ const FullCalendarComponent = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50 rounded-md">
       <div className="flex-grow p-6">
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -114,68 +119,140 @@ const FullCalendarComponent = () => {
 
       {/* Add Event Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg overflow-y-auto max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle>Add New {eventType === "meeting" ? "Meeting" : "Task"}</DialogTitle>
-            <DialogDescription>Please fill in the event details.</DialogDescription>
+            <DialogTitle>
+              Add New {eventType === "Meeting" ? "Meeting" : "Task"}
+            </DialogTitle>
+            <DialogDescription>
+              Please fill in the event details.
+            </DialogDescription>
           </DialogHeader>
-          <Select onValueChange={(value) => setEventType(value)} value={eventType} className="mb-4">
+          <Select
+            onValueChange={(value) => setEventType(value)}
+            value={eventType}
+            className="mb-4"
+          >
             <SelectTrigger className="w-full">Type: {eventType}</SelectTrigger>
             <SelectContent>
-              <SelectItem value="meeting">Meeting</SelectItem>
-              <SelectItem value="task">Task</SelectItem>
+              <SelectItem value="Meeting">Meeting</SelectItem>
+              <SelectItem value="Task">Task</SelectItem>
             </SelectContent>
           </Select>
 
           <div className="mb-4">
             <Label htmlFor="title">Title</Label>
-            <Input id="title" placeholder="Enter title" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <Input
+              id="title"
+              placeholder="Enter title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
           </div>
 
           <div className="mb-4">
             <Label htmlFor="description">Description</Label>
-            <Textarea id="description" placeholder="Enter description" value={description} onChange={(e) => setDescription(e.target.value)} />
+            <Textarea
+              id="description"
+              placeholder="Enter description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
           </div>
 
           {eventType === "meeting" ? (
             <>
               <div className="mb-4">
                 <Label htmlFor="date">Date</Label>
-                <Input type="date" id="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                <Input
+                  type="date"
+                  id="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="startTime">Start Time</Label>
-                  <Input type="time" id="startTime" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+                  <Input
+                    type="time"
+                    id="startTime"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                  />
                 </div>
                 <div>
                   <Label htmlFor="endTime">End Time</Label>
-                  <Input type="time" id="endTime" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+                  <Input
+                    type="time"
+                    id="endTime"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                  />
                 </div>
               </div>
             </>
           ) : (
             <div className="mb-4">
               <Label htmlFor="dueDate">Due Date</Label>
-              <Input type="date" id="dueDate" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+              <Input
+                type="date"
+                id="dueDate"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
             </div>
           )}
 
           <div className="mb-4">
             <Label htmlFor="color">Color (optional)</Label>
-            <Input type="color" id="color" value={color} onChange={(e) => setColor(e.target.value)} />
+            <div className="flex gap-4">
+              {[
+                "#FF6F61", // Bright Pastel Coral
+                "#FFA500", // Bright Pastel Orange
+                "#FFD700", // Bright Pastel Gold
+                "#9ACD32", // Bright Pastel Green
+                "#FF69B4", // Bright Pastel Hot Pink
+                "#40E0D0", // Bright Pastel Turquoise
+                "#ADFF2F", // Bright Pastel Lime Green
+                "#1E90FF", // Bright Pastel Dodger Blue
+              ].map((clr) => (
+                <label key={clr} className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="color"
+                    value={clr}
+                    checked={color === clr}
+                    onChange={(e) => setColor(e.target.value)}
+                    className="hidden"
+                  />
+                  <div
+                    className={`w-8 h-8 rounded-full border-2 cursor-pointer`}
+                    style={{
+                      backgroundColor: clr,
+                      borderColor: color === clr ? "black" : "transparent",
+                    }}
+                  ></div>
+                </label>
+              ))}
+            </div>
           </div>
 
           <div className="mb-4">
-            <Label htmlFor="label">Label (optional)</Label>
-            <Input id="label" placeholder="Enter label" value={label} onChange={(e) => setLabel(e.target.value)} />
+            <Label htmlFor="label">Label (optional, comma-separated)</Label>
+            <Input
+              id="label"
+              placeholder="Enter label"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+            />
           </div>
 
           <div className="mb-4">
             <Label htmlFor="participants">Participants (comma-separated)</Label>
             <Input
               id="participants"
-              placeholder="Enter participants (e.g., Alice, Bob)"
+              placeholder="Enter participants' emails"
               value={participants}
               onChange={(e) => setParticipants(e.target.value)}
             />
