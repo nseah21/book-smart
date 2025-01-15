@@ -1,9 +1,13 @@
-import Image from "next/image";
-import FullCalendarComponent from '../app/components/FullCalendarComponent'
+"use client";
+
+import Wrapper from "./components/Wrapper";
+import NavBar from "./components/NavBar";
+import Calendar from "./calendar/page";
+
 export default function Home() {
   return (
-    <div className="bg-gray-100 p-4">
-      <FullCalendarComponent />
-    </div>
+    <>
+      <Calendar />
+    </>
   );
 }

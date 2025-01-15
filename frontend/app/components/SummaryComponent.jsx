@@ -1,0 +1,61 @@
+import React from "react";
+import Link from "next/link";
+
+const SummaryComponent = ({ description, likelihood, type, suggestions }) => {
+  return (
+    <div className="shadow flex flex-col items-center justify-center pt-5 pb-6 bg-white rounded">
+      <div className="relative rounded pt-2">
+        <table className="text-sm shadow-lg text-left text-gray-800 table-fixed max-w-3xl rounded">
+          <tbody>
+            <tr className="bg-gray-200 border-b border-l-black">
+              <th
+                scope="row"
+                className="px-6 py-4 text-gray-900 whitespace font-semibold"
+              >
+                Description of Scam:
+              </th>
+              <td className="px-6 py-4 text-wrap">{description}</td>
+            </tr>
+            <tr className="bg-gray-200 border-b border-l-black">
+              <th
+                scope="row"
+                className="px-6 py-4 text-gray-900 whitespace font-semibold"
+              >
+                Likelihood of Scam:
+              </th>
+              <td className="px-6 py-4 text-wrap">{likelihood}</td>
+            </tr>
+            <tr className="bg-gray-200 border-b border-l-black">
+              <th
+                scope="row"
+                className="px-6 py-4 text-gray-900 whitespace font-semibold"
+              >
+                Category:
+              </th>
+              <td className="px-6 py-4 text-wrap">{type}</td>
+            </tr>
+            <tr className="bg-gray-200 border-b border-l-black">
+              <th
+                scope="row"
+                className="px-6 py-4 font-semibold text-gray-900 whitespace"
+              >
+                Suggestions to Combat Scam:
+              </th>
+              <td className="px-6 py-4 text-wrap">{suggestions}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div className="flex justify-center">
+          <Link
+            className="bg-gray-900 hover:bg-gray-700 text-white mt-6 py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            href="/stories"
+          >
+            See other scam stories
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SummaryComponent;
