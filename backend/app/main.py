@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routers import meetings, participants, recurrences
+from app.routers import meetings, participants, recurrences, tasks, categories
 
 app = FastAPI()
 
@@ -12,3 +12,5 @@ async def root():
 app.include_router(meetings.router, prefix="/meetings", tags=["Meetings"])
 app.include_router(participants.router, prefix="/participants", tags=["Participants"])
 app.include_router(recurrences.router, prefix="/recurrences", tags=["Recurring Meetings"])
+app.include_router(tasks.router, prefix="/tasks", tags=["Task"])
+app.include_router(categories.router, prefix="/categories", tags=["Categories"])
