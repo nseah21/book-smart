@@ -5,7 +5,6 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { INITIAL_EVENTS, createEventId } from "./event-utils";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import dayjs from "dayjs";
 
 const FullCalendarComponent = () => {
   const [weekendsVisible, setWeekendsVisible] = useState(true);
@@ -63,6 +63,125 @@ const FullCalendarComponent = () => {
     });
 
     setIsEventDetailsOpen(true);
+  };
+
+  const handleDateSelect = (selectInfo) => {
+    setSelectedInfo(selectInfo);
+    setDate(selectInfo.startStr.split("T")[0]); // Autofill the date in the form
+    setIsDialogOpen(true); // Open the dialog
+  };
+
+  const fetchEvents = async () => {
+    try {
+      const [meetingsResponse, tasksResponse, recurrencesResponse] =
+        await Promise.all([
+          fetch("http://localhost:8000/meetings/", { method: "GET" }),
+          fetch("http://localhost:8000/tasks/", { method: "GET" }),
+          fetch("http://localhost:8000/recurrences/", { method: "GET" }),
+        ]);
+
+      const meetings = await meetingsResponse.json();
+      const tasks = await tasksResponse.json();
+      const recurrences = await recurrencesResponse.json();
+
+      const recurrenceEvents = generateRecurrenceEvents(
+        recurrences.recurring_meetings,
+        meetings // Pass existing meetings to prevent duplication
+      );
+
+      const events = [
+        ...meetings.map((m) => ({
+          id: `meeting-${m.id}`,
+          title: m.title,
+          start: `${m.date}T${m.start_time}`,
+          end: `${m.date}T${m.end_time}`,
+          backgroundColor: m.color || "#3788d8",
+          extendedProps: {
+            description: m.description,
+            type: "Meeting",
+            participants: m.participants,
+          },
+        })),
+        ...tasks.map((t) => ({
+          id: `task-${t.id}`,
+          title: t.title,
+          start: t.due_date,
+          backgroundColor: t.color || "#ff9f89",
+          extendedProps: {
+            description: t.description,
+            type: "Task",
+            participants: t.participants,
+          },
+        })),
+        ...recurrenceEvents,
+      ];
+
+      setCurrentEvents(events);
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      alert("Failed to fetch events. Please try again.");
+    }
+  };
+
+  const generateRecurrenceEvents = (recurringMeetings, existingMeetings) => {
+    const events = [];
+    const maxDate = dayjs().add(2, "month"); // Cap at 2 months
+
+    // Extract existing meeting dates to avoid duplication
+    const existingMeetingDates = new Set(
+      existingMeetings.map(
+        (meeting) => `${meeting.date}T${meeting.start_time}` // Match both date and time
+      )
+    );
+
+    recurringMeetings.forEach((recurrence) => {
+      const startDate = dayjs(recurrence.date);
+      const endDate = recurrence.end_date
+        ? dayjs(recurrence.end_date)
+        : maxDate;
+
+      let currentDate = startDate;
+
+      while (currentDate.isBefore(maxDate) && currentDate.isBefore(endDate)) {
+        const startDateTime = `${currentDate.format("YYYY-MM-DD")}T${
+          recurrence.start_time
+        }`;
+
+        // Skip the first instance if it already exists in the meetings
+        if (!existingMeetingDates.has(startDateTime)) {
+          events.push({
+            id: `recurrence-${recurrence.recurrence_id}-${currentDate.format(
+              "YYYY-MM-DD"
+            )}`,
+            title: recurrence.title,
+            start: startDateTime,
+            end: `${currentDate.format("YYYY-MM-DD")}T${recurrence.end_time}`,
+            backgroundColor: "#00aaff",
+            extendedProps: {
+              description: recurrence.description,
+              type: "Recurring Meeting",
+            },
+          });
+        }
+
+        // Increment by the recurrence interval
+        switch (recurrence.frequency) {
+          case "daily":
+            currentDate = currentDate.add(recurrence.interval, "day");
+            break;
+          case "weekly":
+            currentDate = currentDate.add(recurrence.interval, "week");
+            break;
+          case "monthly":
+            currentDate = currentDate.add(recurrence.interval, "month");
+            break;
+          default:
+            break;
+        }
+      }
+    });
+
+    return events;
   };
 
   const lookupParticipantIds = async (emails) => {
@@ -108,57 +227,6 @@ const FullCalendarComponent = () => {
     }
   };
 
-  const fetchEvents = async () => {
-    try {
-      const [meetingsResponse, tasksResponse] = await Promise.all([
-        fetch("http://localhost:8000/meetings/", { method: "GET" }),
-        fetch("http://localhost:8000/tasks/", { method: "GET" }),
-      ]);
-
-      const meetings = await meetingsResponse.json();
-      const tasks = await tasksResponse.json();
-
-      const events = [
-        ...meetings.map((m) => ({
-          id: `meeting-${m.id}`,
-          title: m.title,
-          start: `${m.date}T${m.start_time}`,
-          end: `${m.date}T${m.end_time}`,
-          backgroundColor: m.color || "#3788d8",
-          extendedProps: {
-            description: m.description,
-            type: "Meeting",
-            participants: m.participants,
-            categories: m.categories,
-          },
-        })),
-        ...tasks.map((t) => ({
-          id: `task-${t.id}`,
-          title: t.title,
-          start: t.due_date,
-          backgroundColor: t.color || "#ff9f89",
-          extendedProps: {
-            description: t.description,
-            type: "Task",
-            participants: t.participants,
-            categories: t.categories,
-          },
-        })),
-      ];
-
-      setCurrentEvents(events);
-    } catch (error) {
-      console.error("Error fetching events:", error);
-      alert("Failed to fetch events. Please try again.");
-    }
-  };
-
-  const handleDateSelect = (selectInfo) => {
-    setSelectedInfo(selectInfo);
-    setDate(selectInfo.startStr.split("T")[0]); // Autofill date for "Meeting"
-    setIsDialogOpen(true);
-  };
-
   const handleEventCreate = async () => {
     if (!title.trim()) {
       alert("Title is required");
@@ -166,46 +234,53 @@ const FullCalendarComponent = () => {
     }
 
     try {
-      // Convert participant emails to IDs
-      const participantIds = await lookupParticipantIds(participants);
+      // Ensure the date and time fields are correctly formatted
+      const formattedDate = dayjs(date).isValid()
+        ? dayjs(date).format("YYYY-MM-DD")
+        : null;
+      const formattedStartTime = dayjs(startTime, "HH:mm").isValid()
+        ? dayjs(startTime, "HH:mm").format("HH:mm:ss")
+        : null;
+      const formattedEndTime = dayjs(endTime, "HH:mm").isValid()
+        ? dayjs(endTime, "HH:mm").format("HH:mm:ss")
+        : null;
 
+      if (!formattedDate || !formattedStartTime || !formattedEndTime) {
+        alert("Invalid date or time provided. Please check your input.");
+        return;
+      }
+
+      // Construct the payload
       const eventData = {
         title,
         description,
-        color,
-        participant_ids: participantIds,
-        category_ids: [], // Optional: handle categories
-        recurrence: recurrence !== "none" ? recurrence : null,
-        reminder: reminder ? parseInt(reminder, 10) : null,
+        date: formattedDate,
+        start_time: formattedStartTime,
+        end_time: formattedEndTime,
+        frequency: recurrence !== "none" ? recurrence : null,
+        interval: 1, // Default interval
       };
 
-      if (eventType === "Meeting") {
-        eventData.date = date;
-        eventData.start_time = startTime;
-        eventData.end_time = endTime;
-      } else {
-        eventData.due_date = dueDate;
-      }
+      console.log("Request Payload:", eventData);
 
-      const endpoint = eventType === "Meeting" ? "meetings" : "tasks";
-      const response = await fetch(`http://localhost:8000/${endpoint}/`, {
+      const response = await fetch("http://localhost:8000/recurrences/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(eventData),
       });
 
       if (response.ok) {
-        alert(`${eventType} created successfully!`);
+        alert("Recurring meeting created successfully!");
         resetForm();
         fetchEvents(); // Refresh events
       } else {
         const errorData = await response.json();
-        console.error("Error:", errorData);
-        alert("Failed to create event. Please try again.");
+        console.error("Error Response:", errorData);
+        alert("Failed to create recurring meeting. Please try again.");
       }
     } catch (error) {
-      console.error("Error creating event:", error);
-      alert("Failed to create event. Please try again.");
+      console.error("Error creating recurring meeting:", error);
+      alert("An error occurred. Please try again.");
     }
   };
 
@@ -236,12 +311,12 @@ const FullCalendarComponent = () => {
           initialView="dayGridMonth"
           editable={true}
           selectable={true}
+          select={handleDateSelect}
           selectMirror={true}
           dayMaxEvents={true}
           weekends={weekendsVisible}
           events={currentEvents}
           eventClick={handleEventClick}
-          select={handleDateSelect}
         />
       </div>
 
@@ -271,28 +346,6 @@ const FullCalendarComponent = () => {
                   <p className="text-sm font-medium text-gray-500">End</p>
                   <p className="text-base text-gray-700">{eventDetails?.end}</p>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">
-                    Participants
-                  </p>
-                  <p className="text-base text-gray-700">
-                    {eventDetails?.participants.length > 0
-                      ? eventDetails.participants
-                          .map((p) => `${p.name} (${p.email})`)
-                          .join(", ")
-                      : "None"}
-                  </p>
-                </div>
-                {/* <div>
-                  <p className="text-sm font-medium text-gray-500">
-                    Categories
-                  </p>
-                  <p className="text-base text-gray-700">
-                    {eventDetails?.categories.length > 0
-                      ? eventDetails.categories.map((c) => c.name).join(", ")
-                      : "None"}
-                  </p>
-                </div> */}
               </div>
             </DialogDescription>
           </DialogHeader>
