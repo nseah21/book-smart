@@ -14,6 +14,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # Or pass in as param
 EMBEDDINGS = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
 MODEL_NAME = "gpt-4"  # or "gpt-3.5-turbo", etc.
 
+
 def get_persist_directory(user_id: str) -> str:
     return f"./chromadb/{user_id}"
 
@@ -37,11 +38,9 @@ def text_to_documents(text: str) -> list[Document]:
 
 
 def split_documents(docs: list[Document]) -> list[Document]:
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=200
-    )
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     return text_splitter.split_documents(docs)
+
 
 def create_new_vector_store(docs: list[Document], persist_directory: str):
     print("[INFO] Creating a new Chroma store...")
@@ -55,26 +54,25 @@ def create_new_vector_store(docs: list[Document], persist_directory: str):
 
 def load_existing_vector_store(persist_directory: str) -> Chroma:
     print("[INFO] Loading existing Chroma store...")
-    db = Chroma(
-        persist_directory=persist_directory,
-        embedding_function=EMBEDDINGS
-    )
+    db = Chroma(persist_directory=persist_directory, embedding_function=EMBEDDINGS)
     return db
 
 
 def update_vector_store(user_id: str, new_docs: list[Document]) -> Chroma:
     persist_directory = get_persist_directory(user_id)
     print(f"[DEBUG] Number of input documents: {len(new_docs)}")
-    
+
     for doc in new_docs:
         print(f"[DEBUG] Document content: {doc.page_content[:100]}...")
 
     splitted_docs = split_documents(new_docs)
     print(f"[DEBUG] Number of split documents: {len(splitted_docs)}")
-    
+
     if len(splitted_docs) == 0:
-        raise ValueError("No content to add to vector store. Check the input documents.")
-    
+        raise ValueError(
+            "No content to add to vector store. Check the input documents."
+        )
+
     if not os.path.exists(persist_directory):
         print("[INFO] Creating a new Chroma store...")
         db = create_new_vector_store(splitted_docs, persist_directory)
@@ -85,7 +83,10 @@ def update_vector_store(user_id: str, new_docs: list[Document]) -> Chroma:
 
     return db
 
-def build_summary_prompt(main_email_content: str, additional_context: str = "", user_instructions: str = "") -> str:
+
+def build_summary_prompt(
+    main_email_content: str, additional_context: str = "", user_instructions: str = ""
+) -> str:
     return f"""
 You are an expert email summarizer. Your task is to provide a concise and professional
 summary of the main email below, considering any additional context and following the user's instructions.
@@ -108,7 +109,9 @@ Please provide a well-structured summary.
 """
 
 
-def summarize_and_update(user_id: str, docs: list[Document], user_instructions: str = "") -> str:
+def summarize_and_update(
+    user_id: str, docs: list[Document], user_instructions: str = ""
+) -> str:
     formatted_new_doc_content = "\n\n".join(doc.page_content for doc in docs)
 
     # Step 1: Retrieve context from vector store if available
@@ -125,7 +128,7 @@ def summarize_and_update(user_id: str, docs: list[Document], user_instructions: 
     prompt = build_summary_prompt(
         main_email_content=formatted_new_doc_content,
         additional_context=retrieved_context,
-        user_instructions=user_instructions
+        user_instructions=user_instructions,
     )
 
     # Step 3: Generate summary using LLM
@@ -138,69 +141,68 @@ def summarize_and_update(user_id: str, docs: list[Document], user_instructions: 
 
     return summary
 
+# if __name__ == "__main__":
+#     user_id = "admin"
+#     filename = "exported-email.pdf"
 
-if __name__ == "__main__":
-    user_id = "titima-suthiwan-843"
-    filename = "exported-email.pdf"
+#     user_instructions = "Please give the summary in point form and provide actionable insights."
 
-    user_instructions = "Please give the summary in point form and provide actionable insights."
+#     # ### Case 1: PDF upload
+#     with open(filename, "rb") as file:
+#         docs = load_file(file)
+#         summary = summarize_and_update(user_id, docs, user_instructions)
+#         print("\nGenerated Summary from PDF:\n")
+#         print(summary.content)
 
-    # ### Case 1: PDF upload
-    with open(filename, "rb") as file:
-        docs = load_file(file)
-        summary = summarize_and_update(user_id, docs, user_instructions)
-        print("\nGenerated Summary from PDF:\n")
-        print(summary.content)
+#     ### Case 2: Manual text input
+#     email_text = """
+#     Subject: Important: Module Bidding Process for Exchange Students at Aalto
 
-    ### Case 2: Manual text input
-    email_text = """
-    Subject: Important: Module Bidding Process for Exchange Students at Aalto 
+# Dear Exchange Students,
 
-Dear Exchange Students,
+# We are delighted to welcome you to Aalto University! As part of your academic journey here, you are required to bid for your preferred modules for the upcoming semester. Please read this email carefully to ensure a smooth and successful bidding process.
 
-We are delighted to welcome you to Aalto University! As part of your academic journey here, you are required to bid for your preferred modules for the upcoming semester. Please read this email carefully to ensure a smooth and successful bidding process.
+# Key Dates and Deadlines
+# Module Bidding Opens: January 10, 2025, 9:00 AM
+# Module Bidding Closes: January 14, 2025, 5:00 PM
+# Results Announcement: January 18, 2025
+# Appeals and Module Adjustment Period: January 19–23, 2025
+# Steps to Submit Your Module Bids
+# Access the Module Bidding System:
 
-Key Dates and Deadlines
-Module Bidding Opens: January 10, 2025, 9:00 AM
-Module Bidding Closes: January 14, 2025, 5:00 PM
-Results Announcement: January 18, 2025
-Appeals and Module Adjustment Period: January 19–23, 2025
-Steps to Submit Your Module Bids
-Access the Module Bidding System:
+# Log in to the Student Portal.
+# Navigate to the “Module Bidding” section under the “Academics” tab.
+# Select Your Modules:
 
-Log in to the Student Portal.
-Navigate to the “Module Bidding” section under the “Academics” tab.
-Select Your Modules:
+# Review the list of available modules for exchange students.
+# Note the prerequisites and restrictions for each module.
+# You can bid for up to 8 modules, but you will only be enrolled in a maximum of 5 modules.
+# Allocate Your Bidding Points:
 
-Review the list of available modules for exchange students.
-Note the prerequisites and restrictions for each module.
-You can bid for up to 8 modules, but you will only be enrolled in a maximum of 5 modules.
-Allocate Your Bidding Points:
+# You will be given 100 bidding points to allocate across your chosen modules.
+# Assign points strategically to increase your chances of securing high-demand modules.
+# Submit Your Bids:
 
-You will be given 100 bidding points to allocate across your chosen modules.
-Assign points strategically to increase your chances of securing high-demand modules.
-Submit Your Bids:
+# Double-check your selections and points allocation.
+# Click “Submit” to finalize your bids.
+# Important Information
+# Module Popularity: Some modules are highly competitive. Check last year’s bidding trends on the portal for guidance.
+# Module Timetables: Ensure your selected modules do not have overlapping schedules.
+# Pre-Approved Modules: If you have any pre-approved modules, these will be automatically allocated and will not require bidding.
+# Appeals and Adjustments
+# If you are unsuccessful in securing a desired module, you may submit an appeal during the adjustment period. Appeals will be processed on a first-come, first-served basis and are subject to module availability.
 
-Double-check your selections and points allocation.
-Click “Submit” to finalize your bids.
-Important Information
-Module Popularity: Some modules are highly competitive. Check last year’s bidding trends on the portal for guidance.
-Module Timetables: Ensure your selected modules do not have overlapping schedules.
-Pre-Approved Modules: If you have any pre-approved modules, these will be automatically allocated and will not require bidding.
-Appeals and Adjustments
-If you are unsuccessful in securing a desired module, you may submit an appeal during the adjustment period. Appeals will be processed on a first-come, first-served basis and are subject to module availability.
+# Contact Information
+# For assistance, please contact:
 
-Contact Information
-For assistance, please contact:
+# Module Bidding Helpdesk: [email@example.com] | +1-234-567-890
+# Academic Advisor for Exchange Students: [advisor@example.com]
+# We strongly encourage you to bid early to avoid last-minute issues. Best of luck with your module selection, and we look forward to seeing you on campus soon!
 
-Module Bidding Helpdesk: [email@example.com] | +1-234-567-890
-Academic Advisor for Exchange Students: [advisor@example.com]
-We strongly encourage you to bid early to avoid last-minute issues. Best of luck with your module selection, and we look forward to seeing you on campus soon!
-
-Warm regards,
-Agnetha Berlusconi
-"""
-    docs = text_to_documents(email_text)
-    summary = summarize_and_update(user_id, docs, user_instructions)
-    print("\nGenerated Summary from Text:\n")
-    print(summary.content)
+# Warm regards,
+# Agnetha Berlusconi
+# """
+#     docs = text_to_documents(email_text)
+#     summary = summarize_and_update(user_id, docs, user_instructions)
+#     print("\nGenerated Summary from Text:\n")
+#     print(summary.content)
