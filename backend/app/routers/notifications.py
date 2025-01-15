@@ -28,21 +28,21 @@ def notify_meeting(meeting_id: int, db: Session = Depends(get_db)):
         return {"message": "No participants to notify"}
 
     # Prepare email details
-    subject = f"Reminder: {meeting.title}"
+    subject = f"You're Invited: {meeting.title}"
     body = f"""
-Hi,
+Hi there,
 
-You are invited to the meeting "{meeting.title}".
+I hope this message finds you well! You’re invited to join the meeting "{meeting.title}", and we'd love to have you there.
 
-Details:
-- Description: {meeting.description}
+Here are the details:
+- Description: {meeting.description or "No description provided"}
 - Date: {meeting.date}
 - Time: {meeting.start_time} to {meeting.end_time}
 
-Please let us know if you have any questions.
+Feel free to reach out if you have any questions or need further details. Looking forward to your participation!
 
-Regards,
-Admin
+Warm regards,  
+The Team 
     """
     recipient_emails = [participant.email for participant in participants]
 
@@ -67,20 +67,20 @@ def notify_task(task_id: int, db: Session = Depends(get_db)):
         return {"message": "No participants to notify"}
 
     # Prepare email details
-    subject = f"Task Reminder: {task.title}"
+    subject = f"Task Assigned: {task.title}"
     body = f"""
-Hi,
+Hi there,
 
-You have been assigned to the task "{task.title}".
+You’ve been assigned to the task "{task.title}", and we’re counting on you to get it done!
 
-Details:
-- Description: {task.description}
+Here’s what you need to know:
+- Description: {task.description or "No description provided"}
 - Due Date: {task.due_date}
 
-Please ensure the task is completed by the due date. Let us know if you have any questions.
+Let us know if you have any questions or if there’s anything you need to complete the task. We’re here to help!
 
-Regards,
-Admin
+Best regards,  
+The Team 
     """
     recipient_emails = [participant.email for participant in participants]
 
