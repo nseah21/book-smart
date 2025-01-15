@@ -1,60 +1,25 @@
 import React from "react";
-import Link from "next/link";
 
-const SummaryComponent = ({ description, likelihood, type, suggestions }) => {
+const SummaryComponent = ({ summary, onReset }) => {
   return (
-    <div className="shadow flex flex-col items-center justify-center pt-5 pb-6 bg-white rounded">
-      <div className="relative rounded pt-2">
-        <table className="text-sm shadow-lg text-left text-gray-800 table-fixed max-w-3xl rounded">
-          <tbody>
-            <tr className="bg-gray-200 border-b border-l-black">
-              <th
-                scope="row"
-                className="px-6 py-4 text-gray-900 whitespace font-semibold"
-              >
-                Description of Scam:
-              </th>
-              <td className="px-6 py-4 text-wrap">{description}</td>
-            </tr>
-            <tr className="bg-gray-200 border-b border-l-black">
-              <th
-                scope="row"
-                className="px-6 py-4 text-gray-900 whitespace font-semibold"
-              >
-                Likelihood of Scam:
-              </th>
-              <td className="px-6 py-4 text-wrap">{likelihood}</td>
-            </tr>
-            <tr className="bg-gray-200 border-b border-l-black">
-              <th
-                scope="row"
-                className="px-6 py-4 text-gray-900 whitespace font-semibold"
-              >
-                Category:
-              </th>
-              <td className="px-6 py-4 text-wrap">{type}</td>
-            </tr>
-            <tr className="bg-gray-200 border-b border-l-black">
-              <th
-                scope="row"
-                className="px-6 py-4 font-semibold text-gray-900 whitespace"
-              >
-                Suggestions to Combat Scam:
-              </th>
-              <td className="px-6 py-4 text-wrap">{suggestions}</td>
-            </tr>
-          </tbody>
-        </table>
-        <div className="flex justify-center">
-          <Link
-            className="bg-gray-900 hover:bg-gray-700 text-white mt-6 py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            href="/stories"
+      <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+        <h2 className="text-2xl font-bold mb-4 text-gray-800">Email Summary</h2>
+        <textarea
+          className="w-full p-4 border rounded-md text-gray-700 bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={summary}
+          disabled
+          rows={10}
+          readOnly
+        />
+        <div className="mt-4 flex justify-center">
+          <button
+            className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            onClick={onReset}
           >
-            See other scam stories
-          </Link>
+            Summarize Another Email
+          </button>
         </div>
       </div>
-    </div>
   );
 };
 

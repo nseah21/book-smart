@@ -12,7 +12,7 @@ class SummarizerRequest(BaseModel):
     user_instructions: Optional[str] = ""
 
 
-@router.post("/summarize")
+@router.post("/")
 async def summarize(
     text: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),
@@ -39,5 +39,5 @@ async def summarize(
         raise HTTPException(
             status_code=500, detail=f"Failed to generate summary: {str(e)}"
         )
-
-    return {"summary": summary}
+    print(f"Summary: {summary.content}")
+    return {"summary": summary.content}

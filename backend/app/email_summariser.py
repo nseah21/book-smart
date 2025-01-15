@@ -19,10 +19,10 @@ def get_persist_directory(user_id: str) -> str:
     return f"./chromadb/{user_id}"
 
 
-def load_file(file) -> list[Document]:
+def load_file(file_bytes: bytes) -> list[Document]:
     print("Loading PDF file...")
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
-        temp_file.write(file.read())
+        temp_file.write(file_bytes)  # Write the bytes directly
         temp_file_path = temp_file.name
         print("Temp file path:", temp_file_path)
 
