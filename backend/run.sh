@@ -27,8 +27,6 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-echo "Database seeding completed successfully."
-
 # Step 2: Run the FastAPI server
 echo "Starting the FastAPI server..."
 uvicorn app.main:app --reload

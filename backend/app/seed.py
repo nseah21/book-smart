@@ -1,7 +1,7 @@
 from datetime import date, time
 from sqlalchemy.orm import Session
-from .database import SessionLocal, engine
-from .models import Base, Meeting, Participant
+from app.database import SessionLocal, engine
+from app.models import Base, Meeting, Participant, RecurrenceRule, RecurrenceFrequency
 
 # Ensure tables are created
 Base.metadata.create_all(bind=engine)
@@ -53,6 +53,17 @@ def seed_data():
 
     session.add_all([meeting1, meeting2, meeting3])
     session.commit()
+    
+    # Make the meeting recurring
+    recurrence = RecurrenceRule(
+        meeting_id=meeting3.id,
+        frequency=RecurrenceFrequency.WEEKLY,
+        interval=1,
+        end_date=date(2025, 3, 16),
+    )
+    session.add(recurrence)
+    session.commit()
+    
     print("Database seeded successfully!")
     session.close()
 
