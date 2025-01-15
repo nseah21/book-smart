@@ -18,7 +18,7 @@ fi
 # Install dependencies
 pip install -r requirements.txt
 
-# Step 1: Seed the database
+# # Step 1: Seed the database
 echo "Seeding the database..."
 python -m app.seed
 

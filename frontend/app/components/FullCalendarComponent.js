@@ -39,27 +39,62 @@ const FullCalendarComponent = () => {
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [dueDate, setDueDate] = useState("");
-  const [color, setColor] = useState("#0000ff"); // Default color
-  const [label, setLabel] = useState("");
   const [participants, setParticipants] = useState("");
-  const [recurrence, setRecurrence] = useState("none"); // Recurrence state
-  const [reminder, setReminder] = useState(""); // Reminder state (minutes before)
+  const [recurrence, setRecurrence] = useState("none");
+  const [reminder, setReminder] = useState("");
+  const [color, setColor] = useState("#0000ff");
 
   useEffect(() => {
     fetchEvents();
   }, []);
 
+  const lookupParticipantIds = async (emails) => {
+    try {
+      // Fetch all participants from the backend
+      const response = await fetch("http://localhost:8000/participants/");
+      if (!response.ok) {
+        throw new Error("Failed to fetch participants");
+      }
+  
+      const participants = await response.json();
+  
+      // Split the emails string into an array and trim whitespace
+      const emailList = emails.split(",").map((email) => email.trim().toLowerCase());
+  
+      // Find matching participants by email
+      const participantIds = emailList
+        .map((email) => {
+          const participant = participants.find((p) => p.email.toLowerCase() === email);
+          return participant ? participant.id : null; // Return null if not found
+        })
+        .filter((id) => id !== null); // Exclude null values
+  
+      // Check for any missing participants
+      const missingEmails = emailList.filter(
+        (email) => !participants.some((p) => p.email.toLowerCase() === email)
+      );
+  
+      if (missingEmails.length > 0) {
+        console.warn(`Warning: Some emails were not found: ${missingEmails.join(", ")}`);
+      }
+  
+      return participantIds;
+    } catch (error) {
+      console.error("Error looking up participant IDs:", error);
+      throw error; // Rethrow to handle in the calling function
+    }
+  }
+
   const fetchEvents = async () => {
     try {
       const [meetingsResponse, tasksResponse] = await Promise.all([
-        fetch("http://localhost:8000/meetings/"),
-        fetch("http://localhost:8000/tasks/"),
+        fetch("http://localhost:8000/meetings/", { method: "GET" }),
+        fetch("http://localhost:8000/tasks/", { method: "GET" }),
       ]);
 
       const meetings = await meetingsResponse.json();
       const tasks = await tasksResponse.json();
 
-      // Transform meetings and tasks to FullCalendar's event format
       const events = [
         ...meetings.map((m) => ({
           id: `meeting-${m.id}`,
@@ -95,10 +130,6 @@ const FullCalendarComponent = () => {
     }
   };
 
-  const handleWeekendsToggle = () => {
-    setWeekendsVisible(!weekendsVisible);
-  };
-
   const handleDateSelect = (selectInfo) => {
     setSelectedInfo(selectInfo);
     setDate(selectInfo.startStr.split("T")[0]); // Autofill date for "Meeting"
@@ -110,58 +141,51 @@ const FullCalendarComponent = () => {
       alert("Title is required");
       return;
     }
-
+  
     try {
+      // Convert participant emails to IDs
+      const participantIds = await lookupParticipantIds(participants);
+  
       const eventData = {
         title,
         description,
         color,
-        participant_ids: participants
-          .split(",")
-          .map((id) => parseInt(id.trim(), 10)), // Convert participant IDs to integers
-        category_ids: label.split(",").map((id) => parseInt(id.trim(), 10)), // Convert category IDs to integers
+        participant_ids: participantIds,
+        category_ids: [], // Optional: handle categories
+        recurrence: recurrence !== "none" ? recurrence : null,
+        reminder: reminder ? parseInt(reminder, 10) : null,
       };
-
+  
       if (eventType === "Meeting") {
-        // Additional data for meetings
         eventData.date = date;
         eventData.start_time = startTime;
         eventData.end_time = endTime;
       } else {
-        // Additional data for tasks
         eventData.due_date = dueDate;
       }
-
-      if (recurrence !== "none") {
-        eventData.recurrence = recurrence;
-      }
-      
-      if (reminder) {
-        eventData.reminder = parseInt(reminder, 10); 
-      }
-      
-
+  
       const endpoint = eventType === "Meeting" ? "meetings" : "tasks";
       const response = await fetch(`http://localhost:8000/${endpoint}/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(eventData),
       });
-
+  
       if (response.ok) {
-        const data = await response.json();
         alert(`${eventType} created successfully!`);
         resetForm();
-        // Optionally, reload events from backend
+        fetchEvents(); // Refresh events
       } else {
         const errorData = await response.json();
-        alert(`Error: ${errorData.detail}`);
+        console.error("Error:", errorData);
+        alert("Failed to create event. Please try again.");
       }
     } catch (error) {
       console.error("Error creating event:", error);
       alert("Failed to create event. Please try again.");
     }
   };
+  
 
   const resetForm = () => {
     setTitle("");
@@ -170,11 +194,10 @@ const FullCalendarComponent = () => {
     setStartTime("");
     setEndTime("");
     setDueDate("");
-    setColor("#0000ff");
-    setLabel("");
     setParticipants("");
     setRecurrence("none");
     setReminder("");
+    setColor("#0000ff");
     setIsDialogOpen(false);
   };
 
@@ -288,6 +311,18 @@ const FullCalendarComponent = () => {
           )}
 
           <div className="mb-4">
+            <Label htmlFor="participants">
+              Participants (comma-separated emails)
+            </Label>
+            <Input
+              id="participants"
+              placeholder="Enter participant emails"
+              value={participants}
+              onChange={(e) => setParticipants(e.target.value)}
+            />
+          </div>
+
+          <div className="mb-4">
             <Label htmlFor="recurrence">Recurrence</Label>
             <Select
               onValueChange={(value) => setRecurrence(value)}
@@ -318,39 +353,32 @@ const FullCalendarComponent = () => {
           <div className="mb-4">
             <Label htmlFor="color">Color (optional)</Label>
             <div className="flex gap-4">
-              {[
-                "#FF6F61", // Bright Pastel Coral
-                "#FFA500", // Bright Pastel Orange
-                "#FFD700", // Bright Pastel Gold
-                "#9ACD32", // Bright Pastel Green
-                "#FF69B4", // Bright Pastel Hot Pink
-                "#40E0D0", // Bright Pastel Turquoise
-                "#ADFF2F", // Bright Pastel Lime Green
-                "#1E90FF", // Bright Pastel Dodger Blue
-              ].map((clr) => (
-                <label key={clr} className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="color"
-                    value={clr}
-                    checked={color === clr}
-                    onChange={(e) => setColor(e.target.value)}
-                    className="hidden"
-                  />
-                  <div
-                    className={`w-8 h-8 rounded-full border-2 cursor-pointer`}
-                    style={{
-                      backgroundColor: clr,
-                      borderColor: color === clr ? "black" : "transparent",
-                    }}
-                  ></div>
-                </label>
-              ))}
+              {["#FF6F61", "#FFA500", "#FFD700", "#9ACD32", "#FF69B4", "#40E0D0", "#ADFF2F", "#1E90FF"].map(
+                (clr) => (
+                  <label key={clr} className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="color"
+                      value={clr}
+                      checked={color === clr}
+                      onChange={(e) => setColor(e.target.value)}
+                      className="hidden"
+                    />
+                    <div
+                      className={`w-8 h-8 rounded-full border-2 cursor-pointer`}
+                      style={{
+                        backgroundColor: clr,
+                        borderColor: color === clr ? "black" : "transparent",
+                      }}
+                    ></div>
+                  </label>
+                )
+              )}
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="secondary" onClick={() => setIsDialogOpen(false)}>
+            <Button variant="secondary" onClick={resetForm}>
               Cancel
             </Button>
             <Button onClick={handleEventCreate}>Create Event</Button>

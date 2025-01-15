@@ -13,13 +13,13 @@ def seed_data():
     session = SessionLocal()
 
     # Clear existing data (optional)
-    session.query(Reminder).delete()
-    session.query(RecurrenceRule).delete()
-    session.query(Task).delete()
-    session.query(Meeting).delete()
-    session.query(Participant).delete()
-    session.query(Category).delete()
-    session.commit()
+    # session.query(Reminder).delete()
+    # session.query(RecurrenceRule).delete()
+    # session.query(Task).delete()
+    # session.query(Meeting).delete()
+    # session.query(Participant).delete()
+    # session.query(Category).delete()
+    # session.commit()
 
     # Add participants
     alice = Participant(
@@ -37,7 +37,12 @@ def seed_data():
         email="charlie@example.com", 
         hashed_password=pwd_context.hash("charlie2025")
     )
-    session.add_all([alice, bob, charlie])
+    nicholas = Participant(
+        name="Nicholas Seah", 
+        email="nic@example.com", 
+        hashed_password=pwd_context.hash("123456")
+    )
+    session.add_all([alice, bob, charlie, nicholas])
     session.commit()
 
     # Add categories
