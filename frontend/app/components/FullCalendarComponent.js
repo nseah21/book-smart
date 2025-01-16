@@ -108,71 +108,75 @@ const FullCalendarComponent = () => {
       throw error; // Rethrow to handle in the calling function
     }
   };
-
   const fetchEvents = async () => {
     try {
+      const currentUserEmail = localStorage.getItem("email");
+
       const [meetingsResponse, tasksResponse, recurrencesResponse] =
         await Promise.all([
           fetch("http://localhost:8000/meetings/", { method: "GET" }),
           fetch("http://localhost:8000/tasks/", { method: "GET" }),
-          fetch("http://localhost:8000/recurrences/", {
-            method: "GET",
-          }),
+          fetch("http://localhost:8000/recurrences/", { method: "GET" }),
         ]);
 
       const meetings = await meetingsResponse.json();
       const tasks = await tasksResponse.json();
       const recurrences = await recurrencesResponse.json();
 
-      // Extract recurring meeting IDs from recurrences
-      const recurringMeetingIds =
-        recurrences.recurring_meetings?.map((item) => item.meeting_id) || [];
-
-      // Filter out recurring meetings from non-recurring meetings
-      const nonRecurringMeetings = meetings.filter(
-        (m) => !recurringMeetingIds.includes(m.id)
-      );
-
       const events = [
-        ...nonRecurringMeetings.map((m) => ({
-          id: `meeting-${m.id}`,
-          title: m.title,
-          start: `${m.date}T${m.start_time}`,
-          end: `${m.date}T${m.end_time}`,
-          backgroundColor: m.color || "#3788d8",
-          extendedProps: {
-            description: m.description,
-            type: "Meeting",
-            participants: m.participants,
-            categories: m.categories,
-          },
-        })),
-        ...tasks.map((t) => ({
-          id: `task-${t.id}`,
-          title: t.title,
-          start: t.due_date,
-          backgroundColor: t.color || "#ff9f89",
-          extendedProps: {
-            description: t.description,
-            type: "Task",
-            participants: t.participants,
-            categories: t.categories,
-          },
-        })),
+        ...meetings
+          .filter(
+            (m) =>
+              Array.isArray(m.participants) &&
+              m.participants.some((p) => p.email === currentUserEmail)
+          ) // Safeguard for participants in meetings
+          .map((m) => ({
+            id: `meeting-${m.id}`,
+            title: m.title,
+            start: `${m.date}T${m.start_time}`,
+            end: `${m.date}T${m.end_time}`,
+            backgroundColor: m.color || "#3788d8",
+            extendedProps: {
+              description: m.description,
+              type: "Meeting",
+              participants: m.participants,
+              categories: m.categories,
+            },
+          })),
+        ...tasks
+          .filter(
+            (t) =>
+              Array.isArray(t.participants) &&
+              t.participants.some((p) => p.email === currentUserEmail)
+          ) // Safeguard for participants in tasks
+          .map((t) => ({
+            id: `task-${t.id}`,
+            title: t.title,
+            start: t.due_date,
+            backgroundColor: t.color || "#ff9f89",
+            extendedProps: {
+              description: t.description,
+              type: "Task",
+              participants: t.participants,
+              categories: t.categories,
+            },
+          })),
       ];
 
       if (
         recurrences.recurring_meetings &&
         Array.isArray(recurrences.recurring_meetings)
       ) {
-        recurrences.recurring_meetings.forEach((item) => {
-          // Expand recurring meetings
-          const expandedMeetings = expandRecurringMeeting(item);
-          events.push(...expandedMeetings);
-        });
-      } else {
-        console.error("recurring_meetings is undefined or not an array.");
-        alert("Failed to fetch events. Unexpected response format.");
+        recurrences.recurring_meetings
+          .filter(
+            (r) =>
+              Array.isArray(r.participants) &&
+              r.participants.some((p) => p.email === currentUserEmail)
+          ) // Safeguard for participants in recurring meetings
+          .forEach((item) => {
+            const expandedMeetings = expandRecurringMeeting(item);
+            events.push(...expandedMeetings);
+          });
       }
 
       setCurrentEvents(events);
@@ -193,7 +197,18 @@ const FullCalendarComponent = () => {
       interval,
       end_date,
       color, // Include color from the recurrence data
+      participants, // Include participants for filtering
     } = recurrence;
+
+    const currentUserEmail = localStorage.getItem("email"); // Get the current user's email
+
+    // Safeguard: Check if participants exist and include the current user
+    if (
+      !Array.isArray(participants) ||
+      !participants.some((p) => p.email === currentUserEmail)
+    ) {
+      return []; // If the current user is not a participant, return an empty array
+    }
 
     const events = [];
     const startDate = dayjs(date);
@@ -251,15 +266,22 @@ const FullCalendarComponent = () => {
     }
 
     try {
+      participants.push(localStorage.getItem("email"));
+
       // Convert participant emails to IDs
       const participantIds = await lookupParticipantIds(participants);
+
+      // Ensure the current user is added as a participant
+      if (!participantIds.includes(currentUserId)) {
+        participantIds.push(currentUserId);
+      }
 
       // Construct event data
       const eventData = {
         title,
         description,
         color,
-        participant_ids: participantIds,
+        participant_ids: participantIds, // Include participants
         category_ids: [], // Optional: handle categories
         reminder: reminder ? parseInt(reminder, 10) : null,
       };
@@ -271,12 +293,11 @@ const FullCalendarComponent = () => {
 
         // Handle recurrence for meetings
         if (recurrence !== "none") {
-          // Add recurrence-specific fields
           eventData.frequency = recurrence;
-          eventData.interval = 1; // Adjust based on user input if necessary
-          eventData.end_date = null; // Adjust if an end date is required
+          eventData.interval = 1; // Adjust based on user input
+          eventData.end_date = null;
 
-          // Call the /recurrences/ endpoint for recurring meetings
+          // Send the request to create a recurring meeting
           const recurrenceResponse = await fetch(
             "http://localhost:8000/recurrences/",
             {
@@ -303,7 +324,7 @@ const FullCalendarComponent = () => {
         eventData.due_date = dueDate;
       }
 
-      // Call the respective endpoint for non-recurring meetings or tasks
+      // Send the request to create a non-recurring meeting or task
       const endpoint = eventType === "Meeting" ? "meetings" : "tasks";
       const response = await fetch(`http://localhost:8000/${endpoint}/`, {
         method: "POST",
