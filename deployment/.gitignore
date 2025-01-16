@@ -1,0 +1,8 @@
+.terraform/
+.terraform.tfstate.lock.info
+terraform.tfvars
+terraform.tfstate
+terraform.tfstate.backup
+
+booksmart_ec2_key_pair.pem
+book-smart.zip

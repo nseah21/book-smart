@@ -1,0 +1,16 @@
+name: booksmart
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ./backend/run.sh
+    environment:
+      - APP_PASSWORD
+      - EMAIL_SENDER
+      - OPENAI_API_KEY
+    volumes:
+      - .:/app
+    ports:
+      - 80:80

@@ -2,7 +2,7 @@
 
 # Navigate to the backend directory (ensure we're in the correct folder)
 cd "$(dirname "$0")"
-
+python -m venv venv
 # Detect the OS and activate the virtual environment accordingly
 if [[ "$OSTYPE" == "linux-gnu"* || "$OSTYPE" == "darwin"* ]]; then
     echo "Detected Linux/MacOS. Activating virtual environment..."
@@ -29,4 +29,7 @@ fi
 
 # Step 2: Run the FastAPI server
 echo "Starting the FastAPI server..."
-uvicorn app.main:app --reload
+APP_PASSWORD=${APP_PASSWORD} \
+EMAIL_SENDER=${EMAIL_SENDER} \
+OPENAI_API_KEY=${OPENAI_API_KEY} \
+uvicorn app.main:app

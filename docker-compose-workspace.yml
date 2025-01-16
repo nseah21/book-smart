@@ -1,0 +1,13 @@
+name: book-smart
+
+services:
+  workspace:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ./backend/run.sh
+    volumes:
+      - .:/app
+    ports:
+      - 3000:3000
+    restart: no

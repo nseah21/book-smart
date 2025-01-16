@@ -1,0 +1,20 @@
+{
+  "name": "dev-container",
+  "dockerComposeFile": "../docker-compose-workspace.yml",
+  "service": "workspace",
+  "workspaceFolder": "/app",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.analysis.typeCheckingMode": "strict"
+      },
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "esbenp.prettier-vscode",
+        "4ops.terraform"
+      ]
+    }
+  },
+  "postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}"
+}
