@@ -87,7 +87,7 @@ const FormComponent = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:80/summarizer/", {
+      const response = await fetch("https://shark-app-hntbd.ondigitalocean.app/summarizer/", {
         method: "POST",
         body: formData,
       });

@@ -66,7 +66,7 @@ const FullCalendarComponent = () => {
   const lookupParticipantIds = async (emails) => {
     try {
       // Fetch all participants from the backend
-      const response = await fetch("http://localhost:80/participants/");
+      const response = await fetch("https://shark-app-hntbd.ondigitalocean.app/participants/");
       if (!response.ok) {
         throw new Error("Failed to fetch participants");
       }
@@ -112,9 +112,9 @@ const FullCalendarComponent = () => {
 
       const [meetingsResponse, tasksResponse, recurrencesResponse] =
         await Promise.all([
-          fetch("http://localhost:80/meetings/", { method: "GET" }),
-          fetch("http://localhost:80/tasks/", { method: "GET" }),
-          fetch("http://localhost:80/recurrences/", { method: "GET" }),
+          fetch("https://shark-app-hntbd.ondigitalocean.app/meetings/", { method: "GET" }),
+          fetch("https://shark-app-hntbd.ondigitalocean.app/tasks/", { method: "GET" }),
+          fetch("https://shark-app-hntbd.ondigitalocean.app/recurrences/", { method: "GET" }),
         ]);
 
       const meetings = await meetingsResponse.json();
@@ -295,7 +295,7 @@ const FullCalendarComponent = () => {
           eventData.end_date = null;
 
           const recurrenceResponse = await fetch(
-            "http://localhost:80/recurrences/",
+            "https://shark-app-hntbd.ondigitalocean.app/recurrences/",
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -321,7 +321,7 @@ const FullCalendarComponent = () => {
       }
 
       const endpoint = eventType === "Meeting" ? "meetings" : "tasks";
-      const response = await fetch(`http://localhost:80/${endpoint}/`, {
+      const response = await fetch(`https://shark-app-hntbd.ondigitalocean.app/${endpoint}/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(eventData),
