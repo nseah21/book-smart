@@ -380,13 +380,24 @@ const FullCalendarComponent = () => {
                   </p>
                 </div>
                 <div>
+                  <p className="text-sm font-medium text-gray-500">Start</p>
                   <p className="text-base text-gray-700">
-                    {eventDetails?.start}
+                    {eventDetails?.start
+                      ? dayjs(eventDetails.start).format(
+                          "dddd, MMMM D, YYYY h:mm A"
+                        )
+                      : "N/A"}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-500">End</p>
-                  <p className="text-base text-gray-700">{eventDetails?.end}</p>
+                  <p className="text-base text-gray-700">
+                    {eventDetails?.end
+                      ? dayjs(eventDetails.end).format(
+                          "dddd, MMMM D, YYYY h:mm A"
+                        )
+                      : "N/A"}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-500">
