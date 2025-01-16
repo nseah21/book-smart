@@ -352,6 +352,7 @@ const FullCalendarComponent = () => {
             </DialogDescription>
           </DialogHeader>
 
+          {/* Event Type Selector */}
           <Select
             onValueChange={(value) => setEventType(value)}
             value={eventType}
@@ -364,6 +365,7 @@ const FullCalendarComponent = () => {
             </SelectContent>
           </Select>
 
+          {/* Title Field */}
           <div className="mb-4">
             <Label htmlFor="title">Title</Label>
             <Input
@@ -374,6 +376,7 @@ const FullCalendarComponent = () => {
             />
           </div>
 
+          {/* Description Field */}
           <div className="mb-4">
             <Label htmlFor="description">Description</Label>
             <Textarea
@@ -384,6 +387,7 @@ const FullCalendarComponent = () => {
             />
           </div>
 
+          {/* Conditional Fields for Meeting or Task */}
           {eventType === "Meeting" ? (
             <>
               <div className="mb-4">
@@ -428,6 +432,7 @@ const FullCalendarComponent = () => {
             </div>
           )}
 
+          {/* Participants */}
           <div className="mb-4">
             <Label htmlFor="participants">
               Participants (comma-separated emails)
@@ -440,23 +445,27 @@ const FullCalendarComponent = () => {
             />
           </div>
 
-          <div className="mb-4">
-            <Label htmlFor="recurrence">Recurrence</Label>
-            <Select
-              onValueChange={(value) => setRecurrence(value)}
-              value={recurrence}
-              className="w-full"
-            >
-              <SelectTrigger>Recurrence: {recurrence}</SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                <SelectItem value="daily">Daily</SelectItem>
-                <SelectItem value="weekly">Weekly</SelectItem>
-                <SelectItem value="monthly">Monthly</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Recurrence Section (Visible Only for Meetings) */}
+          {eventType === "Meeting" && (
+            <div className="mb-4">
+              <Label htmlFor="recurrence">Recurrence</Label>
+              <Select
+                onValueChange={(value) => setRecurrence(value)}
+                value={recurrence}
+                className="w-full"
+              >
+                <SelectTrigger>Recurrence: {recurrence}</SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
+          {/* Reminder */}
           <div className="mb-4">
             <Label htmlFor="reminder">Reminder (minutes before)</Label>
             <Input
@@ -468,6 +477,7 @@ const FullCalendarComponent = () => {
             />
           </div>
 
+          {/* Color Picker */}
           <div className="mb-4">
             <Label htmlFor="color">Color (optional)</Label>
             <div className="flex gap-4">
@@ -502,6 +512,7 @@ const FullCalendarComponent = () => {
             </div>
           </div>
 
+          {/* Footer Buttons */}
           <DialogFooter>
             <Button variant="secondary" onClick={resetForm}>
               Cancel
