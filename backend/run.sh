@@ -32,4 +32,5 @@ echo "Starting the FastAPI server..."
 APP_PASSWORD=${APP_PASSWORD} \
 EMAIL_SENDER=${EMAIL_SENDER} \
 OPENAI_API_KEY=${OPENAI_API_KEY} \
-uvicorn app.main:app
+UVICORN_PORT=80 \
+uvicorn --host 0.0.0.0 app.main:app
