@@ -124,8 +124,17 @@ const FullCalendarComponent = () => {
       const tasks = await tasksResponse.json();
       const recurrences = await recurrencesResponse.json();
 
+      // Extract recurring meeting IDs from recurrences
+      const recurringMeetingIds =
+        recurrences.recurring_meetings?.map((item) => item.meeting_id) || [];
+
+      // Filter out recurring meetings from non-recurring meetings
+      const nonRecurringMeetings = meetings.filter(
+        (m) => !recurringMeetingIds.includes(m.id)
+      );
+
       const events = [
-        ...meetings.map((m) => ({
+        ...nonRecurringMeetings.map((m) => ({
           id: `meeting-${m.id}`,
           title: m.title,
           start: `${m.date}T${m.start_time}`,
@@ -182,12 +191,15 @@ const FullCalendarComponent = () => {
       end_time,
       frequency,
       interval,
-      color,
+      end_date,
+      color, // Include color from the recurrence data
     } = recurrence;
 
     const events = [];
     const startDate = dayjs(date);
-    const calculatedEndDate = dayjs().add(1, "year"); // Default end date: one year from today
+    const calculatedEndDate = end_date
+      ? dayjs(end_date)
+      : dayjs().add(1, "year"); // Default end date: one year from today
 
     let currentDate = startDate;
 
