@@ -83,7 +83,7 @@ def seed_data():
     # Add meetings
     meeting1 = Meeting(
         title="Team Sync",
-        description="Weekly team sync to discuss project updates.",
+        description="Team sync to discuss project updates.",
         date=date(2025, 1, 25),
         start_time=time(10, 0, 0),
         end_time=time(11, 0, 0),
@@ -108,7 +108,7 @@ def seed_data():
     recurring_meeting = Meeting(
         title="Weekly Standup",
         description="Weekly team standup to discuss progress and blockers.",
-        date=date(2025, 1, 20),
+        date=date(2025, 1, 10),
         start_time=time(9, 0, 0),
         end_time=time(9, 30, 0),
         color="#FFA500",
