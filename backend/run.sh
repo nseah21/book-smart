@@ -29,4 +29,4 @@ fi
 
 # Step 2: Run the FastAPI server
 echo "Starting the FastAPI server..."
-uvicorn app.main:app --reload
+uvicorn app.main:app --host 0.0.0.0 --port 8000
