@@ -266,7 +266,7 @@ const FullCalendarComponent = () => {
     }
 
     try {
-      participants.push(localStorage.getItem("email"));
+      participants += "," + localStorage.getItem("email");
 
       // Convert participant emails to IDs
       const participantIds = await lookupParticipantIds(participants);
