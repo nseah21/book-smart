@@ -33,24 +33,30 @@ def get_recurring_meetings(db: Session = Depends(get_db)):
     
     return {"recurring_meetings": result}
 
+from pydantic import BaseModel
+from datetime import date, time
+from typing import Optional
+
+class RecurringMeetingRequest(BaseModel):
+    title: str
+    description: str
+    date: date
+    start_time: time
+    end_time: time
+    frequency: RecurrenceFrequency
+    interval: int = 1
+    end_date: Optional[date] = None
+
 @router.post("/")
 def create_recurring_meeting(
-    title: str,
-    description: str,
-    date: str,
-    start_time: str,
-    end_time: str,
-    frequency: RecurrenceFrequency,
-    interval: int = 1,
-    end_date: str = None,
-    db: Session = Depends(get_db),
+    request: RecurringMeetingRequest, db: Session = Depends(get_db)
 ):
     meeting = Meeting(
-        title=title,
-        description=description,
-        date=date,
-        start_time=start_time,
-        end_time=end_time,
+        title=request.title,
+        description=request.description,
+        date=request.date,
+        start_time=request.start_time,
+        end_time=request.end_time,
     )
     db.add(meeting)
     db.commit()
@@ -58,10 +64,11 @@ def create_recurring_meeting(
 
     recurrence = RecurrenceRule(
         meeting_id=meeting.id,
-        frequency=frequency,
-        interval=interval,
-        end_date=end_date,
+        frequency=request.frequency,
+        interval=request.interval,
+        end_date=request.end_date,
     )
     db.add(recurrence)
     db.commit()
     return {"message": "Recurring meeting created", "meeting_id": meeting.id}
+

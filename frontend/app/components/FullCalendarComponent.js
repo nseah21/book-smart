@@ -169,13 +169,13 @@ const FullCalendarComponent = () => {
       // Convert participant emails to IDs
       const participantIds = await lookupParticipantIds(participants);
 
+      // Construct event data
       const eventData = {
         title,
         description,
         color,
         participant_ids: participantIds,
         category_ids: [], // Optional: handle categories
-        recurrence: recurrence !== "none" ? recurrence : null,
         reminder: reminder ? parseInt(reminder, 10) : null,
       };
 
@@ -183,10 +183,42 @@ const FullCalendarComponent = () => {
         eventData.date = date;
         eventData.start_time = startTime;
         eventData.end_time = endTime;
+
+        // Handle recurrence for meetings
+        if (recurrence !== "none") {
+          // Add recurrence-specific fields
+          eventData.frequency = recurrence;
+          eventData.interval = 1; // Adjust based on user input if necessary
+          eventData.end_date = null; // Adjust if an end date is required
+
+          // Call the /recurrences/ endpoint for recurring meetings
+          const recurrenceResponse = await fetch(
+            "http://localhost:8000/recurrences/",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(eventData),
+            }
+          );
+
+          if (recurrenceResponse.ok) {
+            alert("Recurring meeting created successfully!");
+            resetForm();
+            fetchEvents(); // Refresh events
+            return;
+          } else {
+            const errorData = await recurrenceResponse.json();
+            console.error("Error:", errorData);
+            alert("Failed to create recurring meeting. Please try again.");
+            return;
+          }
+        }
       } else {
+        // Handle tasks (non-recurring)
         eventData.due_date = dueDate;
       }
 
+      // Call the respective endpoint for non-recurring meetings or tasks
       const endpoint = eventType === "Meeting" ? "meetings" : "tasks";
       const response = await fetch(`http://localhost:8000/${endpoint}/`, {
         method: "POST",
