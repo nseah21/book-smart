@@ -6,6 +6,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { INITIAL_EVENTS, createEventId } from "./event-utils";
+import dayjs from "dayjs";
 import {
   Dialog,
   DialogContent,
@@ -110,13 +111,18 @@ const FullCalendarComponent = () => {
 
   const fetchEvents = async () => {
     try {
-      const [meetingsResponse, tasksResponse] = await Promise.all([
-        fetch("http://localhost:8000/meetings/", { method: "GET" }),
-        fetch("http://localhost:8000/tasks/", { method: "GET" }),
-      ]);
+      const [meetingsResponse, tasksResponse, recurrencesResponse] =
+        await Promise.all([
+          fetch("http://localhost:8000/meetings/", { method: "GET" }),
+          fetch("http://localhost:8000/tasks/", { method: "GET" }),
+          fetch("http://localhost:8000/recurrences/", {
+            method: "GET",
+          }),
+        ]);
 
       const meetings = await meetingsResponse.json();
       const tasks = await tasksResponse.json();
+      const recurrences = await recurrencesResponse.json();
 
       const events = [
         ...meetings.map((m) => ({
@@ -146,11 +152,78 @@ const FullCalendarComponent = () => {
         })),
       ];
 
+      if (
+        recurrences.recurring_meetings &&
+        Array.isArray(recurrences.recurring_meetings)
+      ) {
+        recurrences.recurring_meetings.forEach((item) => {
+          // Expand recurring meetings
+          const expandedMeetings = expandRecurringMeeting(item);
+          events.push(...expandedMeetings);
+        });
+      } else {
+        console.error("recurring_meetings is undefined or not an array.");
+        alert("Failed to fetch events. Unexpected response format.");
+      }
+
       setCurrentEvents(events);
     } catch (error) {
-      console.error("Error fetching events:", error);
+      console.error("Error fetching events:", error.message);
       alert("Failed to fetch events. Please try again.");
     }
+  };
+
+  const expandRecurringMeeting = (recurrence) => {
+    const {
+      title,
+      description,
+      date,
+      start_time,
+      end_time,
+      frequency,
+      interval,
+      color,
+    } = recurrence;
+
+    const events = [];
+    const startDate = dayjs(date);
+    const calculatedEndDate = dayjs().add(1, "year"); // Default end date: one year from today
+
+    let currentDate = startDate;
+
+    // Generate recurring events
+    while (
+      currentDate.isBefore(calculatedEndDate) ||
+      currentDate.isSame(calculatedEndDate)
+    ) {
+      events.push({
+        id: `meeting-${recurrence.recurrence_id}-${currentDate.format(
+          "YYYY-MM-DD"
+        )}`,
+        title,
+        start: `${currentDate.format("YYYY-MM-DD")}T${start_time}`,
+        end: `${currentDate.format("YYYY-MM-DD")}T${end_time}`,
+        backgroundColor: color || "#3788d8", // Use color from DB, fallback to default
+        extendedProps: {
+          description,
+          type: "Meeting",
+          recurrence: frequency,
+        },
+      });
+
+      // Increment the current date based on the recurrence frequency
+      if (frequency === "daily") {
+        currentDate = currentDate.add(interval, "day");
+      } else if (frequency === "weekly") {
+        currentDate = currentDate.add(interval, "week");
+      } else if (frequency === "monthly") {
+        currentDate = currentDate.add(interval, "month");
+      } else if (frequency === "yearly") {
+        currentDate = currentDate.add(interval, "year");
+      }
+    }
+
+    return events;
   };
 
   const handleDateSelect = (selectInfo) => {
