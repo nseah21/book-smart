@@ -238,8 +238,11 @@ const FullCalendarComponent = () => {
       }
     }
 
-    console.log(`Generated Events for Recurrence ${recurrence_id}:`, events);
-    return events;
+    // Remove the base event from the expanded list (if it exists)
+    return events.filter(
+      (event) =>
+        event.start !== `${startDate.format("YYYY-MM-DD")}T${start_time}`
+    );
   };
 
   const handleDateSelect = (selectInfo) => {
